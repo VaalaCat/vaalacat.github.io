@@ -1,0 +1,639 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>VaalaCat</title>
+  
+  <subtitle>TEEVALLEY</subtitle>
+  <link href="https://vaala.cat/atom.xml" rel="self"/>
+  
+  <link href="https://vaala.cat/"/>
+  <updated>2020-09-28T03:18:05.073Z</updated>
+  <id>https://vaala.cat/</id>
+  
+  <author>
+    <name>VaalaCat</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>限制intel处理器睿频提升轻薄本使用体验</title>
+    <link href="https://vaala.cat/2020/09/28/%E9%99%90%E5%88%B6intel%E5%A4%84%E7%90%86%E5%99%A8%E7%9D%BF%E9%A2%91%E6%8F%90%E5%8D%87%E8%BD%BB%E8%96%84%E6%9C%AC%E4%BD%BF%E7%94%A8%E4%BD%93%E9%AA%8C/"/>
+    <id>https://vaala.cat/2020/09/28/%E9%99%90%E5%88%B6intel%E5%A4%84%E7%90%86%E5%99%A8%E7%9D%BF%E9%A2%91%E6%8F%90%E5%8D%87%E8%BD%BB%E8%96%84%E6%9C%AC%E4%BD%BF%E7%94%A8%E4%BD%93%E9%AA%8C/</id>
+    <published>2020-09-28T01:35:18.000Z</published>
+    <updated>2020-09-28T03:18:05.073Z</updated>
+    
+    <content type="html"><![CDATA[<p>surface book 2 已经服役两年多了，自从前几个月配置好了服务器后就大量使用了云服务迁移了计算服务和数据，大大减少了单终端的负载和重要性，于是趁着这个机会重装了系统，想着把本地的环境全部使用虚拟化部署，免得邮箱之前一样将环境整的乱七八糟。<br>但是让我没想到的是重装过后鼠标拖动窗口移动竟然还是会出现之前一样的卡顿，但是玩游戏又不会卡顿，让我感觉到很是奇怪。打开了n多监控软件，发现在高速移动鼠标的时候会出现 cpu 频率急剧增加的情况，于是尝试使用电源配置限制最高频率，反正也没法一直跑满频率：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">powercfg -SETDCVALUEINDEX SCHEME_BALANCED SUB_PROCESSOR PROCFREQMAX 3800</span><br><span class="line">powercfg -SETACVALUEINDEX SCHEME_BALANCED SUB_PROCESSOR PROCFREQMAX 3800</span><br></pre></td></tr></table></figure><p>然后重启生效，重启过后发现很多小问题都得到了解决，鼠标拖动也是丝般顺滑，舒服</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;surface book 2 已经服役两年多了，自从前几个月配置好了服务器后就大量使用了云服务迁移了计算服务和数据，大大减少了单终端的负载和重要性，于是趁着这个机会重装了系统，想着把本地的环境全部使用虚拟化部署，免得邮箱之前一样将环境整的乱七八糟。&lt;br&gt;但是让我没想到的是</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="surface" scheme="https://vaala.cat/tags/surface/"/>
+    
+    <category term="Windows" scheme="https://vaala.cat/tags/Windows/"/>
+    
+    <category term="系统" scheme="https://vaala.cat/tags/%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="睿频" scheme="https://vaala.cat/tags/%E7%9D%BF%E9%A2%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>ctfd使用ctfd-whale动态靶机插件搭建靶场指南</title>
+    <link href="https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/"/>
+    <id>https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/</id>
+    <published>2020-09-21T06:57:19.000Z</published>
+    <updated>2020-10-13T09:10:01.731Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote><p>之前的文章丢了，重新写一个</p></blockquote><p>这里使用赵师傅开发 <code>ctfd-whale</code> 插件实现动态靶机和动态 flag 功能，要知道的是赵师傅开发的插件是为了适合 buu 的架构，对于普通单服务器搭建靶场的需求对应的是赵师傅博客中的第一个模式。由于赵师傅的博客中有一大部分没有解释清楚的地方，这里写一篇文章做详解。</p><h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><h3 id="安装环境"><a href="#安装环境" class="headerlink" title="安装环境"></a>安装环境</h3><p>由于动态靶机是使用 <code>docker</code> 实现的，所以首先要准备安装一下 <code>docker</code></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https:&#x2F;&#x2F;get.docker.com | bash -s docker --mirror Aliyun </span><br><span class="line">sudo usermod -aG docker vaala</span><br></pre></td></tr></table></figure><p>然后还要准备 <code>docker-compose</code></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install docker-compose -y</span><br></pre></td></tr></table></figure><h3 id="配置环境"><a href="#配置环境" class="headerlink" title="配置环境"></a>配置环境</h3><p>由于插件使用的是集群的模式，所以这里要创建一个单个服务器的集群</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker swarm init</span><br></pre></td></tr></table></figure><p>然后获得节点 ID</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker node ls | awk &#39;&#123;print $1&#125;&#39;</span><br></pre></td></tr></table></figure><p>然后将这个 ID 代表的服务器加入集群</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker node update --label-add name&#x3D;linux-1 unvkxf584pwghr2klw******* # 这里换成上一步找到的 ID</span><br></pre></td></tr></table></figure><p>最后要准备的是给 <code>docker</code> 更换镜像源，这里推荐将 daocloud 和 aliyun 的源都添加进去，不然会很龟速，也可以给 docker 设置镜像源代理如下</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p &#x2F;etc&#x2F;systemd&#x2F;system&#x2F;docker.service.d</span><br><span class="line">sudo nano &#x2F;etc&#x2F;systemd&#x2F;system&#x2F;docker.service.d&#x2F;http-proxy.conf</span><br></pre></td></tr></table></figure><p>然后添加内容，这里是我自己的代理</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment&#x3D;&quot;HTTP_PROXY&#x3D;http:&#x2F;&#x2F;127.0.0.1:7890&quot;</span><br><span class="line">Environment&#x3D;&quot;HTTPS_PROXY&#x3D;http:&#x2F;&#x2F;127.0.0.1:7890&quot;</span><br></pre></td></tr></table></figure><p>重启生效</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure><h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><h3 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h3><p>首先使用赵师傅仓库中的 <code>ctfd</code>，已经做好了镜像换源等工作。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone -b single https:&#x2F;&#x2F;github.com&#x2F;glzjin&#x2F;CTFd.git</span><br></pre></td></tr></table></figure><p>由于国内访问 github 会出现速度慢的问题，所以这里我将源码上传到了我的服务器以供高速下载</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -o CTFd.tar https:&#x2F;&#x2F;file.vaa.la&#x2F;s&#x2F;Swo9frbkoAMncky&#x2F;download &amp;&amp; tar -xf CTFd.tar</span><br></pre></td></tr></table></figure><h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd CTFd</span><br><span class="line">nano frp&#x2F;frps.ini # token 一定要随机</span><br><span class="line">nano frp&#x2F;frpc.ini # token 一定要随机</span><br></pre></td></tr></table></figure><p>这里给出 <code>frp</code> 两个配置文件的内容供参考，大致就是只需要修改 token</p><ul><li><p><code>frpc.ini</code></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[common]</span><br><span class="line">token &#x3D; randomme</span><br><span class="line">server_addr &#x3D; 172.1.0.1</span><br><span class="line">server_port &#x3D; 6490</span><br><span class="line">pool_count &#x3D; 200</span><br><span class="line">tls_enable &#x3D; true</span><br><span class="line"></span><br><span class="line">admin_addr &#x3D; 172.1.0.3</span><br><span class="line">admin_port &#x3D; 7400</span><br></pre></td></tr></table></figure></li><li><p><code>frps.ini</code></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[common]</span><br><span class="line">bind_port &#x3D; 6490</span><br><span class="line">token &#x3D; randomme</span><br></pre></td></tr></table></figure></li></ul><p>修改好之后我们修改一下 Dockerfile 中的源，之前的 tuna 源有些东西有问题，这里换成阿里的，并且要删除 <code>Dockerfile</code> 中的 <code>python</code>，要修改的部分修改后大概就是这一段</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">FROM python:3.7-alpine</span><br><span class="line"></span><br><span class="line">WORKDIR &#x2F;opt&#x2F;CTFd</span><br><span class="line">RUN mkdir -p &#x2F;opt&#x2F;CTFd &#x2F;var&#x2F;log&#x2F;CTFd &#x2F;var&#x2F;uploads</span><br><span class="line"></span><br><span class="line">RUN echo http:&#x2F;&#x2F;mirrors.aliyun.com&#x2F;alpine&#x2F;v3.12&#x2F;main&#x2F; &gt;&gt; &#x2F;etc&#x2F;apk&#x2F;repositories &amp;&amp; \</span><br><span class="line">    apk update</span><br><span class="line"></span><br><span class="line">RUN sed -i &#39;s&#x2F;dl-cdn.alpinelinux.org&#x2F;mirrors.aliyun.com&#x2F;g&#39; &#x2F;etc&#x2F;apk&#x2F;repositories</span><br><span class="line"></span><br><span class="line">RUN apk add \</span><br><span class="line">        linux-headers \</span><br><span class="line">        libffi-dev \</span><br><span class="line">        gcc \</span><br><span class="line">        make \</span><br><span class="line">        musl-dev \</span><br><span class="line">        py-pip \</span><br><span class="line">        mysql-client \</span><br><span class="line">        git \</span><br><span class="line">        openssl-dev</span><br></pre></td></tr></table></figure><p>然后安装插件并启动</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git submodule update --init</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure><p>不出意外就应该成功了，使用</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker ps -a</span><br></pre></td></tr></table></figure><p>查看是否有没有正确启动的镜像</p><h3 id="平台设置"><a href="#平台设置" class="headerlink" title="平台设置"></a>平台设置</h3><p>浏览器访问 8000 端口进入平台，完成平台基本配置，然后进入后台，右上角的插件中进入 <code>ctfd-whale</code> 设置，按下面的内容填写配置</p><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>Docker API URL</td><td><code>unix://var/run/docker.sock</code></td></tr><tr><td>Frp API IP</td><td><code>172.1.0.3</code></td></tr><tr><td>Frp API Port</td><td><code>7400</code></td></tr><tr><td>Frp Http Domain Suffix</td><td><code>None</code></td></tr><tr><td>Frp Http Port</td><td><code>80</code></td></tr><tr><td>Frp Direct IP Address</td><td><code>chive.vaala.cloud</code></td></tr><tr><td>Frp Direct Minimum Port</td><td><code>28000</code></td></tr><tr><td>Frp Direct Maximum Port</td><td><code>28100</code></td></tr><tr><td>Max Container Count</td><td><code>100</code></td></tr><tr><td>Max Renewal Times</td><td><code>5</code></td></tr><tr><td>Frp config template</td><td>这里填写之前 <code>frpc.ini</code> 的内容</td></tr><tr><td>Docker Auto Connect Containers</td><td><code>ctfd_frpc_1</code></td></tr><tr><td>Docker Auto Connect Network</td><td><code>ctfd_frp_containers</code></td></tr><tr><td>Docker Dns Setting</td><td>可留空或填写外部dns</td></tr><tr><td>Docker Swarm Nodes</td><td><code>linux-1</code></td></tr><tr><td>Docker Multi-Container Network Subnet</td><td><code>173.0.0.0/16</code></td></tr><tr><td>Docker Multi-Container Network Subnet New Prefix</td><td><code>24</code></td></tr><tr><td>Docker Container Timeout</td><td><code>3600</code></td></tr></tbody></table><p>最后点一下更新就可以保存配置了，填写完成后新建题目测试是否成功，按下表新建题目，表中没有提到的保持默认就好</p><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>Choose Challenge Type</td><td><code>Dynamic docker</code></td></tr><tr><td>Name</td><td><code>test</code></td></tr><tr><td>Category</td><td><code>test</code></td></tr><tr><td>Initial Value</td><td><code>1</code></td></tr><tr><td>Decay Limit</td><td><code>1</code></td></tr><tr><td>Minimum Value</td><td><code>1</code></td></tr><tr><td>Docker Image</td><td><code>vaalacat/push_f12</code></td></tr><tr><td>Frp Redirect Type</td><td><code>Direct</code></td></tr><tr><td>Frp Redirect Port</td><td><code>80</code></td></tr><tr><td>Score Type</td><td><code>dynamic score</code></td></tr></tbody></table><p>新建题目过后点击启动，然后等待靶机创建，可以在服务器中 <code>docker ps -a</code> 查看是否启动，若启动成功则搭建完成</p><h2 id="问题解决"><a href="#问题解决" class="headerlink" title="问题解决"></a>问题解决</h2><h3 id="docker-ps显示正常但是无法访问"><a href="#docker-ps显示正常但是无法访问" class="headerlink" title="docker ps显示正常但是无法访问"></a>docker ps显示正常但是无法访问</h3><p>可以使用 <code>docker logs ctfd_ctfd_1</code> 查看输出，如果发现输出类似：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;site-packages&#x2F;tzlocal&#x2F;unix.py:158: UserWarning: Can not find any timezone configuration, defaulting to UTC.</span><br><span class="line">  warnings.warn(&#39;Can not find any timezone configuration, defaulting to UTC.&#39;)</span><br><span class="line">Starting CTFd</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;importlib&#x2F;_bootstrap.py:219: RuntimeWarning: greenlet.greenlet size changed, may indicate binary incompatibility. Expected 144 from C header, got 152 from PyObject</span><br><span class="line">  return f(*args, **kwds)</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;importlib&#x2F;_bootstrap.py:219: RuntimeWarning: greenlet.greenlet size changed, may indicate binary incompatibility. Expected 144 from C header, got 152 from PyObject</span><br><span class="line">  return f(*args, **kwds)</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;importlib&#x2F;_bootstrap.py:219: RuntimeWarning: greenlet.greenlet size changed, may indicate binary incompatibility. Expected 144 from C header, got 152 from PyObject</span><br><span class="line">  return f(*args, **kwds)</span><br><span class="line">[2020-10-11 12:31:30 +0000] [1] [INFO] Starting gunicorn 19.9.0</span><br><span class="line">[2020-10-11 12:31:30 +0000] [1] [INFO] Listening at: http:&#x2F;&#x2F;0.0.0.0:8000 (1)</span><br><span class="line">[2020-10-11 12:31:30 +0000] [1] [INFO] Using worker: gevent</span><br><span class="line">[2020-10-11 12:31:30 +0000] [21] [INFO] Booting worker with pid: 21</span><br><span class="line">[2020-10-11 12:31:31 +0000] [23] [INFO] Booting worker with pid: 23</span><br><span class="line">[2020-10-11 12:31:32 +0000] [25] [INFO] Booting worker with pid: 25</span><br><span class="line">[2020-10-11 12:31:34 +0000] [27] [INFO] Booting worker with pid: 27</span><br><span class="line">[2020-10-11 12:31:35 +0000] [29] [INFO] Booting worker with pid: 29</span><br><span class="line">[2020-10-11 12:31:36 +0000] [31] [INFO] Booting worker with pid: 31</span><br><span class="line">[2020-10-11 12:31:37 +0000] [33] [INFO] Booting worker with pid: 33</span><br><span class="line">[2020-10-11 12:31:39 +0000] [35] [INFO] Booting worker with pid: 35</span><br><span class="line">[2020-10-11 12:31:40 +0000] [37] [INFO] Booting worker with pid: 37</span><br></pre></td></tr></table></figure><p>则问题为<a href="https://stackoverflow.com/questions/64105616/greenlet-runtime-error-and-deployed-app-in-docker-keeps-booting-all-the-workers">这篇文章中所提到的问题</a>，只需要删除 <code>requirements.txt</code> 中的 <code>gevent</code> 版本号即可，结果类似下面这样</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">redis&#x3D;&#x3D;3.3.11</span><br><span class="line">datafreeze&#x3D;&#x3D;0.1.0</span><br><span class="line">gevent</span><br><span class="line">python-dotenv&#x3D;&#x3D;0.10.3</span><br><span class="line">flask-restplus&#x3D;&#x3D;0.13.0</span><br></pre></td></tr></table></figure><p>然后 <code>docker-compose down</code> 再启动 <code>docker-compose up -d --build</code> 不出意外应该就能解决问题</p><h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><blockquote><p><a href="https://www.zhaoj.in/read-6333.html">CTFd-Whale 推荐部署实践</a></p></blockquote>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;blockquote&gt;
+&lt;p&gt;之前的文章丢了，重新写一个&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这里使用赵师傅开发 &lt;code&gt;ctfd-whale&lt;/code&gt; 插件实现动态靶机和动态 flag 功能，要知道的是赵师傅开发的插件是为了适合 buu 的架构，对于普通单服务器</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Environment" scheme="https://vaala.cat/categories/Technique/Environment/"/>
+    
+    
+    <category term="ctfd" scheme="https://vaala.cat/tags/ctfd/"/>
+    
+    <category term="动态靶机" scheme="https://vaala.cat/tags/%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA/"/>
+    
+    <category term="ctfd-whale" scheme="https://vaala.cat/tags/ctfd-whale/"/>
+    
+    <category term="ctf" scheme="https://vaala.cat/tags/ctf/"/>
+    
+    <category term="靶场" scheme="https://vaala.cat/tags/%E9%9D%B6%E5%9C%BA/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>在WSL1中快乐的使用docker</title>
+    <link href="https://vaala.cat/2020/08/31/%E5%9C%A8WSL1%E4%B8%AD%E5%BF%AB%E4%B9%90%E7%9A%84%E4%BD%BF%E7%94%A8docker/"/>
+    <id>https://vaala.cat/2020/08/31/%E5%9C%A8WSL1%E4%B8%AD%E5%BF%AB%E4%B9%90%E7%9A%84%E4%BD%BF%E7%94%A8docker/</id>
+    <published>2020-08-31T02:05:01.000Z</published>
+    <updated>2020-08-31T02:43:45.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>坑b微软死活不给我的 surface book2 推送 win10 2004 版，而 wsl1 不支持 docker 守护进程，但是 pwntools 只能在 linux 下安装，每次开个虚拟机麻烦的一p。某天在使用 vscode for wsl 时发现docker插件可以安装，于是就装起来玩了一下，发现安装过后是没法正常使用的。打开 docker for windows 设置开放 deamon 端口并且在 wsl 环境变量中设置</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export DOCKER_HOST&#x3D;tcp:&#x2F;&#x2F;127.0.0.1:2375</span><br></pre></td></tr></table></figure><p>我发现 vscode 中可以正常显示 docker for windows 的容器了。所以我们可以通过在 wsl 中安装 docker-cli 来实现使用 docker 这个需求。首先要安装 docker-cli</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install docker.io</span><br></pre></td></tr></table></figure><p>正当我高兴安装成功时，输入 <code>docker</code> 发现了输出</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">The command &#39;docker&#39; could not be found in this WSL 1 distro.</span><br><span class="line">We recommend to convert this distro to WSL 2 and activate</span><br><span class="line">the WSL integration in Docker Desktop settings.</span><br><span class="line"></span><br><span class="line">See https:&#x2F;&#x2F;docs.docker.com&#x2F;docker-for-windows&#x2F;wsl&#x2F; for details.</span><br></pre></td></tr></table></figure><p>看来是巨硬搞了一个也叫docker的东西来提醒我，那就需要把它删除</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">whereis docker</span><br></pre></td></tr></table></figure><p>可以发现有一个二进制文件</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;mnt&#x2F;c&#x2F;Program Files&#x2F;Docker&#x2F;Docker&#x2F;resources&#x2F;bin&#x2F;docker</span><br></pre></td></tr></table></figure><p>这个文件就是罪魁祸首，需要删除它，以防万一，把这个文件重命名。然后就可以快乐的在 wsl1 中运行docker了</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;坑b微软死活不给我的 surface book2 推送 win10 2004 版，而 wsl1 不支持 docker 守护进程，但是 pwntools 只能在 linux 下安装，每次开个虚拟机麻烦的一p。某天在使用 vscode for wsl 时发现docker插件可以</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="docker" scheme="https://vaala.cat/tags/docker/"/>
+    
+    <category term="wsl" scheme="https://vaala.cat/tags/wsl/"/>
+    
+    <category term="Windows" scheme="https://vaala.cat/tags/Windows/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>ShareX 配置 Ubuntu Pastebin 和阿里云 oss 分享</title>
+    <link href="https://vaala.cat/2020/08/25/ShareX-%E9%85%8D%E7%BD%AEUbuntu-Pastebin-%E5%88%86%E4%BA%AB/"/>
+    <id>https://vaala.cat/2020/08/25/ShareX-%E9%85%8D%E7%BD%AEUbuntu-Pastebin-%E5%88%86%E4%BA%AB/</id>
+    <published>2020-08-25T00:30:40.000Z</published>
+    <updated>2020-08-31T02:36:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>用了 sharex 过后感觉给别人分享图片和代码文件的体验好了不少，但是 sharex 并没有提供 Ubuntu Pastebin 这个知名代码分享平台让我很难受，阿里云 oss 也尚未支持，而且在网上也没有找到相关的资料，之前的解决方案是使用自建的 hastebin 以及 nextcloud，虽然体验不错不过毕竟是自建的，没有高性能高带宽的服务器体验还是会大打折扣，于是只好自己解决然后记录一下了。</p><h2 id="Ubuntu-Pastebin"><a href="#Ubuntu-Pastebin" class="headerlink" title="Ubuntu Pastebin"></a>Ubuntu Pastebin</h2><p>这个代码分享平台的格式还是很简单的，大概给出表格</p><ul><li>请求</li></ul><table><thead><tr><th>方法</th><th>URL</th><th>请求体</th></tr></thead><tbody><tr><td>POST</td><td><a href="https://paste.ubuntu.com/">https://paste.ubuntu.com</a></td><td>Form URL encoded</td></tr></tbody></table><table><thead><tr><th>名称</th><th>值</th></tr></thead><tbody><tr><td>poster</td><td>VaalaCat</td></tr><tr><td>syntax</td><td>text</td></tr><tr><td>content</td><td>$input$</td></tr></tbody></table><ul><li>响应</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$responseurl$</span><br></pre></td></tr></table></figure><h2 id="Aliyun-OSS"><a href="#Aliyun-OSS" class="headerlink" title="Aliyun OSS"></a>Aliyun OSS</h2><p><del>正在测试</del>gugugugugugu</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;用了 sharex 过后感觉给别人分享图片和代码文件的体验好了不少，但是 sharex 并没有提供 Ubuntu Pastebin 这个知名代码分享平台让我很难受，阿里云 oss 也尚未支持，而且在网上也没有找到相关的资料，之前的解决方案是使用自建的 hastebin 以及</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="阿里云" scheme="https://vaala.cat/tags/%E9%98%BF%E9%87%8C%E4%BA%91/"/>
+    
+    <category term="Ubuntu Pastebin" scheme="https://vaala.cat/tags/Ubuntu-Pastebin/"/>
+    
+    <category term="oss" scheme="https://vaala.cat/tags/oss/"/>
+    
+    <category term="ShareX" scheme="https://vaala.cat/tags/ShareX/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>博客搬迁</title>
+    <link href="https://vaala.cat/2020/08/23/newblog/"/>
+    <id>https://vaala.cat/2020/08/23/newblog/</id>
+    <published>2020-08-23T07:23:33.000Z</published>
+    <updated>2020-08-23T07:25:26.000Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="hahaha"><a href="#hahaha" class="headerlink" title="hahaha"></a>hahaha</h2><p>终于转战hexo了，不得不说github pages真的良心，自带cdn还不要钱，不过以前的评论是没法导出了，hexo这个直接把md拖进来就能当博客简直方便，顺便嫖了阿里云的oss做图床和加速静态资源，就算是github pages加速过后访问体验也是可以接受的，今后应该不会再搬迁博客了，以前的评论也只能就这么算了，相信之后博客会更高产把hahahahahah</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h2 id=&quot;hahaha&quot;&gt;&lt;a href=&quot;#hahaha&quot; class=&quot;headerlink&quot; title=&quot;hahaha&quot;&gt;&lt;/a&gt;hahaha&lt;/h2&gt;&lt;p&gt;终于转战hexo了，不得不说github pages真的良心，自带cdn还不要钱，不过以前的评论是没法导出了</summary>
+      
+    
+    
+    
+    <category term="Life" scheme="https://vaala.cat/categories/Life/"/>
+    
+    
+    <category term="杂记" scheme="https://vaala.cat/tags/%E6%9D%82%E8%AE%B0/"/>
+    
+    <category term="博客" scheme="https://vaala.cat/tags/%E5%8D%9A%E5%AE%A2/"/>
+    
+    <category term="网站" scheme="https://vaala.cat/tags/%E7%BD%91%E7%AB%99/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>OBS Virtual Cam指北</title>
+    <link href="https://vaala.cat/2020/06/10/obs-virtual-cam%E6%8C%87%E5%8C%97/"/>
+    <id>https://vaala.cat/2020/06/10/obs-virtual-cam%E6%8C%87%E5%8C%97/</id>
+    <published>2020-06-10T10:14:33.000Z</published>
+    <updated>2020-08-31T02:36:14.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>obs是一个通常用作直播换脸软件（😊，用途就是将本地的媒体资源虚拟为摄像头输出，可以起到更改视频流的作用。</p><p>首先要安装软件，有两个文件，一个是主程序，一个是插件。</p><p>由于网络环境问题，我将软件使用了cdn进行加速：<a href="https://wws.lanzous.com/b01bh2tmd">下载点我</a> 密码：5qb8</p><p>安装一路默认就好</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;obs是一个通常用作直播换脸软件（😊，用途就是将本地的媒体资源虚拟为摄像头输出，可以起到更改视频流的作用。&lt;/p&gt;
+&lt;p&gt;首先要安装软件，有两个文件，一个是主程序，一个是插件。&lt;/p&gt;
+&lt;p&gt;由于网络环境问题，我将软件使用了cdn进行加速：&lt;a href=&quot;https:/</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="OBS" scheme="https://vaala.cat/tags/OBS/"/>
+    
+    <category term="software" scheme="https://vaala.cat/tags/software/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>为Idrac配置邮箱警报</title>
+    <link href="https://vaala.cat/2020/05/05/%E4%B8%BAidrac%E9%85%8D%E7%BD%AE%E9%82%AE%E7%AE%B1%E8%AD%A6%E6%8A%A5/"/>
+    <id>https://vaala.cat/2020/05/05/%E4%B8%BAidrac%E9%85%8D%E7%BD%AE%E9%82%AE%E7%AE%B1%E8%AD%A6%E6%8A%A5/</id>
+    <published>2020-05-05T12:11:23.000Z</published>
+    <updated>2020-09-22T00:33:56.706Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="想法"><a href="#想法" class="headerlink" title="想法"></a>想法</h2><p>由于有了两个公网IP，遂捡了一台洋垃圾服务器以充分利用资源（其实就是想玩服务器）。由于两个IP一个是移动300M，一个是电信的100M，于是就把带宽较大的移动专线直接从网关路由插上了服务器，另一个则用于dell的idrac以管理服务器，以实现服务器在崩掉的情况下还能远程操作。(现已更新为双移动IP，都接入路由器，由路由器承担端口转发的工作。</p><a id="more"></a><h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>服务器本身的网络配置一帆风顺，照着Proxmox ve给的文档轻松就配置好了现已更新为esxi（不得不吐槽下移动的墙中墙，网络质量实在太差，在GitHub下个项目都能下出来一个缓存的老版本。倒是Dell的Idrac的邮箱配置是个巨坑。</p><p>众所周知服务器都会有IPMI的配置，方便网管管理。但是我这也不是专业机房，没有人24小时监控（现在有了），于是打算部署一个邮箱报警。一番查找资料后发现idrac里面是有这个相关的设置，但是使用网易的邮箱一直都没有配置成功，换了腾讯，gmail也都不行。</p><p>查找资料后在官方论坛中发现一个大坑，说是要将idrac中的网络设置里面，如图配置：</p><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2020/05/image-1-1024x241.png"></p><p>dns中的名称要以邮箱名称为准（这就要求要设置好dns服务器，而idrac默认是不配置的，然后在邮箱设置里面如图设置</p><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2020/05/image-2.png"></p><p>然后是警报邮箱填上就行，填写好以后可以测试下是否设置成功</p><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2020/05/image-3.png"></p><p>在官网文档找一个警报等级高的id填上去点发送就可以了</p>]]></content>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;想法&quot;&gt;&lt;a href=&quot;#想法&quot; class=&quot;headerlink&quot; title=&quot;想法&quot;&gt;&lt;/a&gt;想法&lt;/h2&gt;&lt;p&gt;由于有了两个公网IP，遂捡了一台洋垃圾服务器以充分利用资源（其实就是想玩服务器）。由于两个IP一个是移动300M，一个是电信的100M，于是就把带宽较大的移动专线直接从网关路由插上了服务器，另一个则用于dell的idrac以管理服务器，以实现服务器在崩掉的情况下还能远程操作。(现已更新为双移动IP，都接入路由器，由路由器承担端口转发的工作。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="dell" scheme="https://vaala.cat/tags/dell/"/>
+    
+    <category term="idrac" scheme="https://vaala.cat/tags/idrac/"/>
+    
+    <category term="ipmi" scheme="https://vaala.cat/tags/ipmi/"/>
+    
+    <category term="服务器" scheme="https://vaala.cat/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>工科数学分析教材</title>
+    <link href="https://vaala.cat/2020/02/17/themathbook/"/>
+    <id>https://vaala.cat/2020/02/17/themathbook/</id>
+    <published>2020-02-17T02:26:26.000Z</published>
+    <updated>2020-09-22T00:33:56.707Z</updated>
+    
+    <content type="html"><![CDATA[<p><a href="https://oss.vaa.la/oss/wordpress/uploads/2020/02/%E5%A4%A7%E5%AD%A6%E6%95%B0%E5%AD%A6%E5%B7%A5%E7%A7%91%E6%95%B0%E5%AD%A6%E5%88%86%E6%9E%90%E4%B8%8A%E7%AC%AC5%E7%89%8813858731.pdf">大学工科数学分析上</a></p><p><a href="https://oss.vaa.la/oss/wordpress/uploads/2020/02/14097849_%E5%A4%A7%E5%AD%A6%E6%95%B0%E5%AD%A6%E5%B7%A5%E7%A7%91%E6%95%B0%E5%AD%A6%E5%88%86%E6%9E%90%E7%AC%AC5%E7%89%88%E4%B8%8B_p232.pdf">大学工科数学分析下</a></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;a href=&quot;https://oss.vaa.la/oss/wordpress/uploads/2020/02/%E5%A4%A7%E5%AD%A6%E6%95%B0%E5%AD%A6%E5%B7%A5%E7%A7%91%E6%95%B0%E5%AD%A6%E5%88%</summary>
+      
+    
+    
+    
+    <category term="Archive" scheme="https://vaala.cat/categories/Archive/"/>
+    
+    <category term="Math" scheme="https://vaala.cat/categories/Archive/Math/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>2019</title>
+    <link href="https://vaala.cat/2020/01/01/2019/"/>
+    <id>https://vaala.cat/2020/01/01/2019/</id>
+    <published>2019-12-31T16:03:39.000Z</published>
+    <updated>2020-09-08T14:53:35.000Z</updated>
+    
+    <content type="html"><![CDATA[<div id="hexo-blog-encrypt" data-wpm="Vaala觉得你的密码看着不太对." data-whm="Vaala校验文章失败, 不过Vaala还是让你看看解密后的内容."><div class="hbe-input-container"><input type="password" id="hbePass" placeholder="您好, Vaala需要你的密码." /><label>您好, Vaala需要你的密码.</label><div class="bottom-line"></div></div><script id="hbeData" type="hbeData" data-hmacdigest="7e389040471fb164eb30b5b242b87e16f0f81b7930b38fbbd8d0255b1e043fa0">2b8de2b426b5b2a3863dcc019943ac6f3e0324c5a56981fb9dd1d2b29e16a8a100366749820d4f71c9f6434c53b75be9ccb370207b508782dc820cace460915dcdbaac2f8fa2ddace029e9b28f51ef57c4cfd11c7c097628da2d22efedfef9d02629944a8f0015917228120f12fead0aca168efeb7047be9c6366805a645a3a2c2d4d840c742d2b2fe5b4f24711a0f112156ba08b4bee1f9a7468d8145b61528f241788c7e7376bcf3c792d1f7610364a530ef1e5e88ef3fe2566d8c6ecf1d937bfd361a0fdd05967733b732ff5e7b5e599b5c0f076d4cb10d2f5641dce37f828c45fe7a5749872e30b000234b70559f32f23faa2a00ec436873757d7e2567532daeff202163ffd39ad139c109ce9f462e9752078a672d616cb30e50275f585b0c0918b6e7d76c8d941a6c2ee7cb76725c33a28b78f742330f85c87cc6306214a74581c73292f01a6876e27bbf84500e106fb405e128d418079d730bf93da6fc614c676fceacf92c10d421094c98ab8d4cdf920a35f1801ae222f80b4fe7b88e38ed42f62843f162730d105c429789a431fc6835051f63394df9d4a1702f14706728c66c8f8b65bac7e6e961e0d41211fec904c4e9b0ad8a2243efb6d6b2248096d9884b1efe096f351cf86242ca32fd443ee53d1f2782a5d58d144549feba16bb777e9faddd09ea52375b63e7861cb52f7f78a3b4c3d769a5f29d428860f19071b0abb3f6be7c51b99397faeb69a42ff437456a6c6d9b3d7cfd4468c8e3080b266c84428d31e31f5ae06345b4bd64224d61909e65e76847fc11c0129c1cf0fd06078a5d609e3253d500242203b4640e8f10e3ddb343f94434a8fd53b9672a249f87d892296e597e5083f7158e9d09edc2f9525b605f44ecfd7234fdd3105230ece9d474c8f275429fcdb5e11a7c045782ef26f2ec6c4c1593e0d56a90af6e9458fb773d7232a8cc4970c0bf44faf5a20637b404415398d0abf730acfb23b454f69433a2b5e8466ffb2fb1c843767900d277ed52bebac6b0a43cae3e724dbbbf256ddafe0648c48091d1098a7c7b656f0a1d2f42c8a5033888a99c0c5c294c1be39e3379d249b021621e29df466fc4e615f840db941108a154750b9c2aef2d8a377183321c21b74f99a9af954b29ac18a63a6eed3eb6b16c22e80c9e3ebd285a44b9c93352d6c2106d19b96860d764f17ea48bcbb18576df77d6360d14ba34509a87440a48ac44167433f40fd8bf82072de260806f8770b49ccb9370605ef41b29af434499497248ec9aeb4be767b31da58c3a5e58c2c268f5d78cbcf57980df85442475155f123102dc2d804a2483921201444a3efe943ffc76503e2ff7489e0dc67513b1eaf96190d62965f8e375624daea45ba8e2ec08ed6e2ff67d3439f1a0457493ca68e4091e86af166c13f4a9fccb48576786b2061c82430593e5686832e73e6c42973b75b038673f440a74acabe81e3dc5c7ab1b3aed6e1abefa6c62cf64f2fa8579c8fab25854d962388168fa18bbbf165fb8e833734f756dc9e3d3a35723d149260c44935d573f6ff6d9088a8a4a4283410cb9f93578ce94d22a046a146a1a6715ac6d02986a37d4524d5cab9b9fd616e70334e2031e785631ef925cdd7942803d105d13635030bd830c64c7aebe58ef441b14e20376d84da9264895872e8dbe452f8fd5f9b4bd0a1a0dc493596f7d0de89f7dd60849868232915e9d4ac93949e1309074d7f1330be405b806a570000818581db7f4cdde7642cea81f256037764359758861bf27024de2269ae170ff2f4adc2e56e50fe01caf874f01086d55e7d15eef5dfbc8683a8d687777cc6a4568b9af0302711e0bd97000a28d1d7557b5bd8ec278fe10dce690754ed89b22491821e491cf48b4dd3fc075895d532c5b43052af24750f68aec26d2bd1d06cf554889f0a34b7bccd7c2c9c9fe8c7d80fa8ebfa5bf234936439bcb5eac255c3ba42fc4f335cd53fa24421b5349b2363420e973f2d3e1f3a73a20f3a310c4951dcbd07d19809efc96bd4ddacc88bdc497e8b181891d60e86655a35d9fe8a35490fecc8586c3e2befed41a4cfeb1655cb46bcba92f6173ba20d4e96faf0d46fcc4fd2bbabc843b117471d83b940328958e0944b9fac63df28c7ae36c89c0c8ea32343fbbb5a3445afca816ff0fc26a99014b3365987a29534c343dce89814ea819762fdb7145ca778fd56129de1559156cec52544bb541262bfed835dc7cae82379e26220299a24e1ef9a1ebfa0d94c3d732a7a1438eb88b614ae50207723321839174a53b5e3ca2860618bd2e0eab254c4c605d74ade00ea75f1925eeb6ac116d7c0ca2465f8201f162af0fe021a3c71020d61421d48c885986160d44a90eb5070c022ea1254fead78e36d82d6e679ecb6f0ef515c8c41df1814079a7c814415f567d7ed5c8d9e7734af0c2685d4fcdb58da6cfcc8b11ad7b29616a881770979338eddca108ac992a67c1dfa7cef85a63b54cc736f33694bdeefc28d108ff3229f1aeecdc2ef676456e15851feccf602dd51a4f3cdd27ef44301c45c89237709f1ac240e4dc83f2b5cfd3930a6fb844a8651f46df510118a87defedd860814bcaef19d7fa686ad261d5d89f147c10078301621e4c1c3748f9ef6ed0bf8a249d67e707a9bd40390f8c16a1f8e74fa21aa940ca2cbf0a4fcc87644d959d8e97cad1cb58114aeace952e0e3b5ccd267d8b2938f18bafe48bacae1f82b59ec1d6cefa3337cb03dc8cc2a4caf0af8a94c1e2708266fbf2ae3d707ed7ed054dba4f960256cfca7448ebaea06d31504ef33201eca27b5547a32cd0a7f6c0949045955389bc1317c899079d9b2cb1802a4d46e1816fe1ebf1c04f62e32154d014e066df78c4cd0dd7cd2d6dece04849cd2ae93709ec3af10a1eb5b83a84388a69fc9594fb2fc82d0d107c1379b408d96b2cfe7f920761aa20514c69e9471c1c612db7314c5d2704dfd2d64708acde5957a3377efcc26c2a8bcbe2a0e713384390f4d11cbf8bf846ba0d2ab1982489c22f3ad93b4975146b73070123571650f4604738fcb3aaeab4837f6b32091399a2c347042d7a3f75215d46e45482ac2e79ac75ebd0f6048b4099e41b31ea9f333c134158e2cfcd9898d07e0345f27a2ec573cea1899ffd427e42fc4130b917b534280597106d93eb384bb641ec60bcb99fa00e92de5fe40cf84f9416645da66a192fbee91ec964b62dd80e05a00aedb01e2c60bb8f645bc4c64ba4f933dc609425354e0e3bcdaf964133593a45cdd00217e98fd36e30380223e160be2c6b94a23f45c943d2891d9354a7f07ecd7872db9f8b598e9c56eb0d46fe8480c19509015ff260fb227e9dbbb95fb140bcda9867eb9d9676a68ca491ff9f1f66a6a25fa22fa8484bf339857af57de13645c223e6b8b7458b37c2297f22192b3918924ee83d6a1427967ee0618a2d1314288d7d31fdb3f288580f105eaf3c16ae586b01b6ec0244c6759b42124bb54ae74c6d5224df68988df6a8e7bde426a437fc1d1b9feaa044637c918e9883c4b9689e1b08873e9b1f0137a9dd2257efd21446b6ce2e16bc359dbe49926d521059aad63ea50d9880d4d9c8786a737c92ee19569c8986b04ee6b0250703db2dfee6148abe70e748b23b5230bfca865899aae610f3f03f4eaa4ff944b96c6d3855296171a637cf3674de67fc3b9a665966300fe9373c32db746bf7b9cd91a016e7c84d25bc0ba20ac5141927b2502f1c404454b9bec827d1895361f835e3107b90c1de0184b405547867506ccaa6c858f1d646c76738bf1002a1e88edf55bd43eed7b1459f997b7938b8b5d52c0abe2864cbc379918cc9845b4286a8e17ab178b752f2f6679797b532651ec7894e806bfba2cfb4645950e9295c8a04e123ce3af0c9a29d4a06c0a907cebcebbe1be21dc41ab9e0ca0c0ada0816</script></div><script src="/lib/blog-encrypt.js"></script><link href="/css/blog-encrypt.css" rel="stylesheet" type="text/css">]]></content>
+    
+    
+    <summary type="html">Vaala把它加密了, 请输入密码查看.</summary>
+    
+    
+    
+    <category term="Life" scheme="https://vaala.cat/categories/Life/"/>
+    
+    
+    <category term="life" scheme="https://vaala.cat/tags/life/"/>
+    
+    <category term="memory" scheme="https://vaala.cat/tags/memory/"/>
+    
+    <category term="passwd" scheme="https://vaala.cat/tags/passwd/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Robomaster校赛智能小车OpenCV视觉与神经网络环境搭建</title>
+    <link href="https://vaala.cat/2019/12/10/robomaster-opencv-and-tensorflow-car-environment-preparation/"/>
+    <id>https://vaala.cat/2019/12/10/robomaster-opencv-and-tensorflow-car-environment-preparation/</id>
+    <published>2019-12-10T14:55:35.000Z</published>
+    <updated>2020-09-22T00:33:56.707Z</updated>
+    
+    <content type="html"><![CDATA[<p>本项目的所有代码均上传至GitHub，项目地址：<a href="https://github.com/VaalaCat/AI_raspberry_car">https://github.com/VaalaCat/AI_raspberry_car</a></p><h2 id="一、简介"><a href="#一、简介" class="headerlink" title="一、简介"></a>一、简介</h2><p>由于作死选择了摄像头来做这个项目，那显而易见的需要用到opencv来处理这个图像。（其实之前是用picamera库，不过现在opencv也不用编译了，还是选opencv吧）</p><p>首先要介绍一下我的设备：</p><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/12/img_20191228_1547382525920447325202399-1024x768.jpg"></p><ul><li>树莓派4（俺的pi3看样子是中道崩殂了）</li><li>picamera模块</li></ul><p>小小的吐槽一下pi4的发热量，简直比810火龙还强，没个强点的散热根本跑不满。</p><h2 id="二、环境搭建"><a href="#二、环境搭建" class="headerlink" title="二、环境搭建"></a>二、环境搭建</h2><h3 id="1、opencv环境"><a href="#1、opencv环境" class="headerlink" title="1、opencv环境"></a>1、opencv环境</h3><p>既然说是要用到opencv，那就不得不提到opencv的安装。早在一年前我就妄图在我的pi3上安装python3的opencv，结果看到网上一大堆的python2直接pip安装的方法，又想到python3编译的龟速，还容易出错，心都凉了半截。不过今年再次翻资料的时候，找到了pip3安装opencv的方法，并且在我的pi3，pi4，pi zero w上，buster系统，无一失败。</p><p>安装opencv步骤大致如下：</p><ol><li>启动树莓派首先要换源，否则下载可能会失败数次且相当龟速，详见tuna源：<a href="https://mirror.tuna.tsinghua.edu.cn/help/raspbian/">树莓派换源</a></li><li>安装依赖项（由于我也不知道要用到些啥依赖，就瞎装了几个）<code>sudo apt-get install libhdf5-dev libhdf5-serial-dev libqtgui4 libqtwebkit4 libqt4-test python3-pyqt5 libatlas-base-dev libjasper-dev</code></li><li>安装opencv（这里建议大家安装opencv3而不是默认的opencv4，每次我安装opencv4完成后都会遇到不可预料的错误）<code>sudo pip3 install --no-cache-dir opencv-contrib-python==3.4.3.18</code> （由于网络原因，下载可能较慢，这里我将whl包上传到了我的服务器以供快速下载安装：<a href="https://oss.vaa.la/oss/wordpress/uploads/2019/12/opencv_contrib_python-3.4.3.18-cp37-cp37m-linux_armv7l.whl">opencv3</a></li></ol><p>安装完成后，输入<code>python3</code> 然后<code>import cv2</code> 如果没有出错则说明安装成功。</p><p>安装中的问题详见：<a href="https://zhuanlan.zhihu.com/p/92184435">Opencv的安装</a></p><h3 id="2、tf神经网络环境"><a href="#2、tf神经网络环境" class="headerlink" title="2、tf神经网络环境"></a>2、tf神经网络环境</h3><p>在安装完成后，当然要准备识别路线了，然而，路线识别简直是太困难了，所以对于岔路口分类，我选择了用tensorflow搭建一个简单的分类器来解决这个问题，毕竟，能让电脑累的就不能让自己累着了是吧。</p><p>这里因为tf2新增了keras，开发和调试效率较高，所以选择逻辑简洁的tf2作为开发环境。</p><p>安装tensorflow 2步骤大致如下（我当然是选择上GitHub白嫖，交叉编译简直难顶。仅pi3，4，直接上命令吧）：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">sudo pip3 install --upgrade setuptools</span><br><span class="line">sudo apt-get install -y libhdf5-dev libc-ares-dev libeigen3-dev</span><br><span class="line">sudo pip3 install keras_applications&#x3D;&#x3D;1.0.8 --no-deps</span><br><span class="line">sudo pip3 install keras_preprocessing&#x3D;&#x3D;1.1.0 --no-deps</span><br><span class="line">sudo pip3 install h5py&#x3D;&#x3D;2.9.0</span><br><span class="line">sudo apt-get install -y openmpi-bin libopenmpi-dev</span><br><span class="line">sudo apt-get install -y libatlas-base-dev</span><br><span class="line">pip3 install -U --user six wheel mock</span><br><span class="line">wget https:&#x2F;&#x2F;oss.vaa.la&#x2F;oss&#x2F;wordpress&#x2F;uploads&#x2F;2020&#x2F;01&#x2F;Tensorflow-bin-master&#x2F;tensorflow-2.1.0-cp37-cp37m-linux_armv7l.whl</span><br><span class="line">sudo pip3 uninstall tensorflow</span><br><span class="line">sudo -H pip3 install tensorflow-2.1.0-cp37-cp37m-linux_armv7l.whl</span><br></pre></td></tr></table></figure><p>tf安装的其他问题详见：<a href="https://github.com/PINTO0309/Tensorflow-bin">Tensorflow-Bin预编译包</a>，<a href="https://www.tensorflow.org/install/source_rpi">TF官网帮助</a></p><p>安装完成后进入python3使用import检查是否可以成功引用。</p><p>以上步骤顺利执行完，就可以开始我们的开发了，<del>详见下一篇文章</del>咕咕咕咕咕咕咕。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;本项目的所有代码均上传至GitHub，项目地址：&lt;a href=&quot;https://github.com/VaalaCat/AI_raspberry_car&quot;&gt;https://github.com/VaalaCat/AI_raspberry_car&lt;/a&gt;&lt;/p&gt;
+&lt;h2 i</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
+    
+    <category term="Hardware" scheme="https://vaala.cat/categories/Technique/Hardware/"/>
+    
+    
+    <category term="camera" scheme="https://vaala.cat/tags/camera/"/>
+    
+    <category term="car" scheme="https://vaala.cat/tags/car/"/>
+    
+    <category term="opencv" scheme="https://vaala.cat/tags/opencv/"/>
+    
+    <category term="python" scheme="https://vaala.cat/tags/python/"/>
+    
+    <category term="raspberry" scheme="https://vaala.cat/tags/raspberry/"/>
+    
+    <category term="tensorflow" scheme="https://vaala.cat/tags/tensorflow/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>自建科学上网小助手</title>
+    <link href="https://vaala.cat/2019/11/18/%E7%A7%91%E5%AD%A6%E4%B8%8A%E7%BD%91%E5%B0%8F%E5%8A%A9%E6%89%8B/"/>
+    <id>https://vaala.cat/2019/11/18/%E7%A7%91%E5%AD%A6%E4%B8%8A%E7%BD%91%E5%B0%8F%E5%8A%A9%E6%89%8B/</id>
+    <published>2019-11-18T02:52:11.000Z</published>
+    <updated>2020-08-31T02:38:01.000Z</updated>
+    
+    <content type="html"><![CDATA[<div id="hexo-blog-encrypt" data-wpm="Vaala觉得你的密码看着不太对." data-whm="Vaala校验文章失败, 不过Vaala还是让你看看解密后的内容."><div class="hbe-input-container"><input type="password" id="hbePass" placeholder="您好, Vaala需要你的密码." /><label>您好, Vaala需要你的密码.</label><div class="bottom-line"></div></div><script id="hbeData" type="hbeData" data-hmacdigest="4b81bd35f2fb6ce5292744c8a1de495c220a3d5e0383884831fab43751fba3b3">87677e6f599ca7cfdb9bceef5b8ced7ac038b348d8dc75f87348d736d6bc1196f26d6b5c7abceadc34a2af9c637aaabc006c678cc97a13ed2097e0a2f0350b6d0f39c16129a25befa8cbfe3146a1d04c9a294a3719291eea45f2af4bd29e900d7b4971e1dc19bcb221e2e34c1568fe4117e79d18f198a0f02957e381f40d99f6e8f056da846bbcede7208ff17c62a71fcd73cc4f03d697d809bd99c78e1dcd05761386da8955c038d504e126beb347aec2205146213dc2d9d36b32fdf53e856c4d354f5ce812bc63823a2eb4f820635bb3a573a5c0cace02b9a7caf7e34766082ae85368fa8ce71fbe09e487ef1e1af667fd755490289db1ceaa816ae6f37ff88eaeca0a9270be4281863148d6edc53cb703a3726b3e08d41fedea540ee3999dee3bdea70413475e9e8b66189157f0771561bfea0d3f9a4c8d42e285c8cc9a94aa3b512e84a0f5f7f72fa30acc3fceaec0ab91ba9acc3877a3a48271e7f102b5268b81ed7f1f4dbd312709d5ed4857e9336396ad4060afab4b2a5f3f88bd2cb3b873198743c1948052d98e1df35791193c4435a20aef045906e2e0c4c21fed1f63d07ebe0d3e2d98ceec29fc1b622bd37fd8e15f707b1a627b333b9e82b1a14405f9b7838fccad816ed94594f4968b85655f4114dd0b1de2aa62213961a11622614b6ea10d70a598ae023a06d9fda5de511cec336f3670d19c517e1c16c2aba58f7870f58bfd7aa628b73e812dd0663feb85b285dcf16472a048fa4f0dafe44f396b322929b387f672e229dd265eed7d88b1527d738523a743d32a9d1d1ba88be199bdbd0da88aa9e51c57a869d960950f9fa0a93f1089731b7ad6fe868f2201b49d7be26cc64a509aa1377b18bc582a4a129aa2e7dc3f7b9fa7787705e8f078d73e539c34cf2813b5ef1af286d1b306fbfd518aa6fc38911dcced9ab621d4668c0fe3d0404db17dc3150beaac80565cecd2643bd014a7c54b9b2926e0a65122a23d8770dcd7cb8640e2c2b250cccdd049a08b0d1c9d9229a7f7d701c7294a685ef9edd8739118f8dfa78b6f53c97e51963c06580eb829b858afb872fb59a2bbfcb449c424f34aba218b032d3cf5890e149f23f59dbcb5edcc3b604cd844bc25f53f106dc36533cbe982dd3994d4d1799ef5a553501342e833c750fd934b33b5dc3bc6e35cccae68f07eacd0252ceb43b72ccd3bfa939cf676752e259105129303d102d51c442ad75020a25a94b4c99ecae57c69df06e6feef145372a65759ca9381040592fb194fa85cc233a02b77b9d536e7d9ff333289bc56dce7093b51fac54a05b64247698d312f178c4cded692c89a9e1196f62a575edb607db173f8288b83b6c99e44444bf3d8ac3fb298a8bae1e71eeef0aa3e5a9cf91188a2fd25acc643fce77217a48a2c78c61d5c2a56e95f32c6dc7cf432b184c16c03f6c283800c6afa883e37817a68613da0fd0c751629573bafb359c6433610a41a7c06c01cb73255ac1a0025222540a2bfe9342914643c78f893820025110d95e1e47a125eb3ba28d4b830e44daaf27c8b17c16eb8b500e510885f6d90b8866e631fcf560cf90ed51a170c9e16d7c028916901afb4f147321a5a11a46360ad65ba52d9f453e24e460249312506e6eb82bb31a30cf26d3793328a372eddb48a62c5d2bdf3b750c02e505fc3d38732e35360bc69a3af8ee75a1b4b5c0a06b8e9a29b6dbd36826d7eb3aba029d3c89ca7bb1dcc16947cdc6f56364d35e0268d18aa8151f9f547a047624253f97700f2dbe38fbf4692efc865ec83afa4ebf8125e41b283237ae83ae6a5e2c38cd578363608c088fb75a99e1fa4d0609191f6784848841da8479dc3c61f1920627ed1b4eb2b5ec2150b25</script></div><script src="/lib/blog-encrypt.js"></script><link href="/css/blog-encrypt.css" rel="stylesheet" type="text/css">]]></content>
+    
+    
+    <summary type="html">Vaala把它加密了, 请输入密码查看.</summary>
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="passwd" scheme="https://vaala.cat/tags/passwd/"/>
+    
+    <category term="科学上网" scheme="https://vaala.cat/tags/%E7%A7%91%E5%AD%A6%E4%B8%8A%E7%BD%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>在树莓派3b上接收xbox one 蓝牙手柄数据</title>
+    <link href="https://vaala.cat/2019/11/07/%E5%9C%A8%E6%A0%91%E8%8E%93%E6%B4%BE3b%E4%B8%8A%E6%8E%A5%E6%94%B6xbox-one-%E8%93%9D%E7%89%99%E6%89%8B%E6%9F%84%E6%95%B0%E6%8D%AE/"/>
+    <id>https://vaala.cat/2019/11/07/%E5%9C%A8%E6%A0%91%E8%8E%93%E6%B4%BE3b%E4%B8%8A%E6%8E%A5%E6%94%B6xbox-one-%E8%93%9D%E7%89%99%E6%89%8B%E6%9F%84%E6%95%B0%E6%8D%AE/</id>
+    <published>2019-11-07T06:03:09.000Z</published>
+    <updated>2020-08-31T02:34:54.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>——智能小车</p><p>因为校赛要求要制作一个智能小车，得有遥控功能，综合权衡了各种遥控方式，如web端，app，发现持续性和操作维度很少，于是选择了我的xbox蓝牙手柄（在查资料的时候还发现树莓派将GPIO的串口分配给了蓝牙，也就是说不能公用GPIO串口和蓝牙，于是选择了使用usb线连接arduino）</p><hr><p>在Google使用中文关键词搜索了n次没有发现什么有用的数据，于是使用英文关键词检索到了大量可用数据（还是好好学英文吧），在GitHub上也找到了不少轮子可以直接用的</p><p>需要注意的是树莓派直接连接蓝牙是不可行的，会提示无可用服务，在查到的资料看来，需要这样操作<a href="https://github.com/erviveksoni/xbox-raspberrypi-rover">https://github.com/erviveksoni/xbox-raspberrypi-rover</a>还有这个<a href="https://github.com/atar-axis/xpadneo/tree/master/docs">https://github.com/atar-axis/xpadneo/tree/master/docs</a></p><p>按xpadneo的readme连接成功后手柄会震动提示</p><p>连接成功后就在Python中可以使用pygame包里面的joysitck读取手柄数据了（有点奇怪的就是那个🎮的方向按键没有被读取到QAQ）</p><p>还要吐槽一下手柄的数据，这个极限值有点不对劲啊，摇杆向左极限是-1，向右却只有0.998xxxxxx，更奇怪的是好几个轴的极限值都是一样的，不知道巨硬是怎么想的</p><p>这里还贴几个开发中遇到的小坑，由于上位机树莓派接收遥控数据然后通过USB串口传给下位机Arduino，在开发过程中有三个问题</p><p>一个是我在Arduino IDE发数据是完全没有问题的，用pyserial给Arduino发数据却出现了不识别的情况，多次试验后发现这是因为pyserial发送速度过快，发送的多个字符串被当成一个串处理，解决方法是加一个发送延时</p><p>另一个就是发送数据的编码问题，Python中一般是utf8编码，而Arduino却是ASCII，所以发送的类型应该是ASCII的bytes数据</p><p>还有一个是我在最后遥控的时候发现，每当遥控正常操作一段时间，都会出现卡顿，原因是serial的print速度太慢，大量数据卡在缓存导致Arduino运行慢，删掉serial.print即可</p><p>有时间传一波整车图片叭（遥控手感真心不错</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;——智能小车&lt;/p&gt;
+&lt;p&gt;因为校赛要求要制作一个智能小车，得有遥控功能，综合权衡了各种遥控方式，如web端，app，发现持续性和操作维度很少，于是选择了我的xbox蓝牙手柄（在查资料的时候还发现树莓派将GPIO的串口分配给了蓝牙，也就是说不能公用GPIO串口和蓝牙，于是选</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Hardware" scheme="https://vaala.cat/categories/Technique/Hardware/"/>
+    
+    
+    <category term="arduino" scheme="https://vaala.cat/tags/arduino/"/>
+    
+    <category term="xbox" scheme="https://vaala.cat/tags/xbox/"/>
+    
+    <category term="手柄" scheme="https://vaala.cat/tags/%E6%89%8B%E6%9F%84/"/>
+    
+    <category term="树莓派" scheme="https://vaala.cat/tags/%E6%A0%91%E8%8E%93%E6%B4%BE/"/>
+    
+    <category term="遥控" scheme="https://vaala.cat/tags/%E9%81%A5%E6%8E%A7/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Surface book 2 维修杂记</title>
+    <link href="https://vaala.cat/2019/07/09/surface-book-2-%E7%BB%B4%E4%BF%AE%E6%9D%82%E8%AE%B0/"/>
+    <id>https://vaala.cat/2019/07/09/surface-book-2-%E7%BB%B4%E4%BF%AE%E6%9D%82%E8%AE%B0/</id>
+    <published>2019-07-08T23:41:33.000Z</published>
+    <updated>2020-09-22T00:33:56.706Z</updated>
+    
+    <content type="html"><![CDATA[<p>用了一年的SB2喝了杯水，自己用吹风处理后并无卵用，当天晚上风扇关机后继续转动，托人拿给售后，售后表示人为损坏并不想维修。 找到第三方维修，花了3k大洋过更换了主板和键盘（键盘似乎并未更换，那个被我用吹风机热风吹变形的键帽还在那里。。。） 这里要吐槽一下第三方维修的专业程度，竟然用双面胶粘贴D面面板？？？ 并且留下了后遗症：键盘部分充电只能充到65%，而且出现了分离后键盘背光灯仍然亮起（以前并不会），既然第三方已经处理完进水，我就打算去微软官方售后碰碰运气。 在<a href="https://support.microsoft.com/zh-cn/devices/">微软售后页面</a>下维修订单，维修类型选择：硬件问题-底座连接问题 <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/07/Screenshot_20190709-074420.jpg"> <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/07/Screenshot_20190709-074524.jpg"> 下单后微软发来一封邮件，表示FedEx会来收件 <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/07/Screenshot_20190709-074710.jpg"> 然而我这种三线小城并无FedEx网点，不过过了两天，有个非常专业的FedEx客服打电话和我确认取件时间，我发现是另外一个啥没听过的快递公司，按单号查询得知，这个快递公司是将机器运送到FedEx网点，再由FedEx送至微软。 <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/07/Screenshot_20190709-075045.jpg"> 又过了n天收到了另一封邮件 <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/07/Screenshot_20190709-075140.jpg"> 一天后又收到另一封邮件 此时查看售后页面 <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/07/Screenshot_20190709-075258.jpg"> 发现已经发货，邮件似乎存在数据延迟，时间会晚上一天，可能是我用了VPN导致是美国时间。</p><hr><p>2019.07.18 收到笔记本6天，不得不说官方维修的效果不错，不过把我机器D面新增了几条划痕，还把我膜全部撕掉WTF，不过也无伤大雅，毕竟没给钱是把，再买张贴上就好了</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;用了一年的SB2喝了杯水，自己用吹风处理后并无卵用，当天晚上风扇关机后继续转动，托人拿给售后，售后表示人为损坏并不想维修。 找到第三方维修，花了3k大洋过更换了主板和键盘（键盘似乎并未更换，那个被我用吹风机热风吹变形的键帽还在那里。。。） 这里要吐槽一下第三方维修的专业程度</summary>
+      
+    
+    
+    
+    <category term="Life" scheme="https://vaala.cat/categories/Life/"/>
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Hardware" scheme="https://vaala.cat/categories/Technique/Hardware/"/>
+    
+    
+    <category term="杂记" scheme="https://vaala.cat/tags/%E6%9D%82%E8%AE%B0/"/>
+    
+    <category term="surface" scheme="https://vaala.cat/tags/surface/"/>
+    
+    <category term="维修" scheme="https://vaala.cat/tags/%E7%BB%B4%E4%BF%AE/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>脑洞：每日知乎</title>
+    <link href="https://vaala.cat/2019/05/08/%E8%84%91%E6%B4%9E%EF%BC%9A%E6%AF%8F%E6%97%A5%E7%9F%A5%E4%B9%8E/"/>
+    <id>https://vaala.cat/2019/05/08/%E8%84%91%E6%B4%9E%EF%BC%9A%E6%AF%8F%E6%97%A5%E7%9F%A5%E4%B9%8E/</id>
+    <published>2019-05-07T17:19:27.000Z</published>
+    <updated>2020-08-31T02:38:05.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>每天在教室无聊啊，只有逛逛知乎才有趣。 又不能明目张胆的开手机，遂打算做一个打印知乎文章的小工具 它需要以下功能：</p><ol><li>接受发送的知乎链接</li><li>保存链接对应标题，答案的文字和作者</li><li>自动排版</li><li>pdf或直接打印输出</li></ol><p>坑已挖，待填</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;每天在教室无聊啊，只有逛逛知乎才有趣。 又不能明目张胆的开手机，遂打算做一个打印知乎文章的小工具 它需要以下功能：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;接受发送的知乎链接&lt;/li&gt;
+&lt;li&gt;保存链接对应标题，答案的文字和作者&lt;/li&gt;
+&lt;li&gt;自动排版&lt;/li&gt;
+&lt;li&gt;pdf或直接</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
+    
+    
+    <category term="Web" scheme="https://vaala.cat/tags/Web/"/>
+    
+    <category term="想法" scheme="https://vaala.cat/tags/%E6%83%B3%E6%B3%95/"/>
+    
+    <category term="打印" scheme="https://vaala.cat/tags/%E6%89%93%E5%8D%B0/"/>
+    
+    <category term="爬虫" scheme="https://vaala.cat/tags/%E7%88%AC%E8%99%AB/"/>
+    
+    <category term="知乎" scheme="https://vaala.cat/tags/%E7%9F%A5%E4%B9%8E/"/>
+    
+    <category term="脑洞" scheme="https://vaala.cat/tags/%E8%84%91%E6%B4%9E/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>新脑洞：NFC+WiFi direct</title>
+    <link href="https://vaala.cat/2019/05/08/%E6%96%B0%E8%84%91%E6%B4%9E%EF%BC%9Anfcwifi-direct/"/>
+    <id>https://vaala.cat/2019/05/08/%E6%96%B0%E8%84%91%E6%B4%9E%EF%BC%9Anfcwifi-direct/</id>
+    <published>2019-05-07T17:15:34.000Z</published>
+    <updated>2020-09-22T00:33:56.706Z</updated>
+    
+    <content type="html"><![CDATA[<p>看了华为最近吹得很厉害的Huawei share3.0（就是手机一碰电脑就自动传文件那个），感觉是非常的方便，然而我并不想用华为的手机（其实是我没钱） 本来已经放弃这东西，但是看到说只要是华为笔记本，不管是新款还是旧款，拿到专卖店就能升级这玩意儿，我就寻思旧款的笔记本也没NFC这玩意儿啊，怎么实现一碰传的。 查询相关资料后发现这东西就是个NFC tag贴在电脑上。。。。 不得不说的确很机智 <img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/04/s6dd94b82-26ea-4d53-a0c3-42ec3ff533833266178627231986992.jpg"> 分析后我认为这个东西是通过手机刷NFC连上电脑热点然后传输文件，但是看到视频演示里面传文件并没有影响到连接，又找了一大堆资料后发现还有个WiFi direct这玩意儿，可以实现设备端到端的连接，速度还比较快 这样的话软件的架构就已经成型了： （待更新）</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;看了华为最近吹得很厉害的Huawei share3.0（就是手机一碰电脑就自动传文件那个），感觉是非常的方便，然而我并不想用华为的手机（其实是我没钱） 本来已经放弃这东西，但是看到说只要是华为笔记本，不管是新款还是旧款，拿到专卖店就能升级这玩意儿，我就寻思旧款的笔记本也没N</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
+    
+    
+    <category term="NFC" scheme="https://vaala.cat/tags/NFC/"/>
+    
+    <category term="WiFi" scheme="https://vaala.cat/tags/WiFi/"/>
+    
+    <category term="传输" scheme="https://vaala.cat/tags/%E4%BC%A0%E8%BE%93/"/>
+    
+    <category term="文件" scheme="https://vaala.cat/tags/%E6%96%87%E4%BB%B6/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>在windows10下转换mbr磁盘为gpt的大坑</title>
+    <link href="https://vaala.cat/2019/04/15/%E5%9C%A8windows10%E4%B8%8B%E8%BD%AC%E6%8D%A2mbr%E7%A3%81%E7%9B%98%E4%B8%BAgpt%E7%9A%84%E5%A4%A7%E5%9D%91/"/>
+    <id>https://vaala.cat/2019/04/15/%E5%9C%A8windows10%E4%B8%8B%E8%BD%AC%E6%8D%A2mbr%E7%A3%81%E7%9B%98%E4%B8%BAgpt%E7%9A%84%E5%A4%A7%E5%9D%91/</id>
+    <published>2019-04-15T15:40:53.000Z</published>
+    <updated>2020-09-22T00:33:56.706Z</updated>
+    
+    <content type="html"><![CDATA[<p>今天想试试1809的云剪贴板功能，结果发现台式电脑还处于1803，遂加入预览计划，下载升级包后发现竟然不支持mbr格式磁盘，找了一大堆资料后发现巨硬在自家1703后就自带了mbr2gpt.exe。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mbr2gpt &#x2F;validate &#x2F;allowfullos</span><br><span class="line">mbr2gpt &#x2F;convert &#x2F;disk:0 &#x2F;allowfullos</span><br></pre></td></tr></table></figure><p>验证并转换磁盘，第一次竟然失败了，我再尝试一次后发现转换成功，就重启电脑，结果就出现了下面这种情况</p><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/03/WIN_20190324_14_40_05_Pro-1024x576.jpg"></p><blockquote><p>0xC000000E或STATUS_NO_SUCH_DEVICE表示硬件故障或驱动器配置不正确。 检查电缆并使用驱动器制造商提供的诊断实用程序检查驱动器。 如果您使用的是较旧的PATA（IDE）驱动器，则此状态代码可能表示主/从属驱动器配置不正确。<br>导致这些错误的原因可能是winload.exe文件无法访问或损坏，或者无法找到操作系统的引导位置。</p><p>尝试使用下列方法修复你的设备<br>--重建BCD。<br>--使用自动修复工具。<br>--检查物理设备连接。<br>--重置BIOS / UEFI配置。<br>--将您的磁盘标记为在线。</p><p>微软官方回复  </p></blockquote><p>初步判断为引导文件挂掉，于是加载pe修复引导，用微pe自带的引导修复工具修复</p><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2019/03/WIN_20190324_14_53_26_Pro-1024x576.jpg"></p><p>发现并没有什么卵用。。。遂再次尝试，重启后发现还是没有什么卵用</p><p>遂使用bcd修复</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd c:&#x2F;windows&#x2F;system32 </span><br><span class="line">bcdedit &#x2F;set &#123;default&#125; osdevice boot </span><br><span class="line">bcdedit &#x2F;set &#123;default&#125; device boot </span><br><span class="line">bcdedit &#x2F;set &#123;default&#125; detecthal 1 </span><br></pre></td></tr></table></figure><p>更新：4月15日，重装系统，真香</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;今天想试试1809的云剪贴板功能，结果发现台式电脑还处于1803，遂加入预览计划，下载升级包后发现竟然不支持mbr格式磁盘，找了一大堆资料后发现巨硬在自家1703后就自带了mbr2gpt.exe。&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;t</summary>
+      
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    
+    <category term="Windows" scheme="https://vaala.cat/tags/Windows/"/>
+    
+    <category term="gpt" scheme="https://vaala.cat/tags/gpt/"/>
+    
+    <category term="mbr" scheme="https://vaala.cat/tags/mbr/"/>
+    
+    <category term="格式" scheme="https://vaala.cat/tags/%E6%A0%BC%E5%BC%8F/"/>
+    
+    <category term="磁盘" scheme="https://vaala.cat/tags/%E7%A3%81%E7%9B%98/"/>
+    
+    <category term="系统" scheme="https://vaala.cat/tags/%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="转换" scheme="https://vaala.cat/tags/%E8%BD%AC%E6%8D%A2/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[转载]告别 2018</title>
+    <link href="https://vaala.cat/2019/01/02/%E8%BD%AC%E8%BD%BD%E5%91%8A%E5%88%AB-2018/"/>
+    <id>https://vaala.cat/2019/01/02/%E8%BD%AC%E8%BD%BD%E5%91%8A%E5%88%AB-2018/</id>
+    <published>2019-01-02T15:14:11.000Z</published>
+    <updated>2020-08-31T02:35:30.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>原文链接：<a href="https://moy.cat/2019/01/%E5%91%8A%E5%88%AB-2018/">https://moy.cat/2019/01/%E5%91%8A%E5%88%AB-2018/</a></p><p>@moycat</p><p>UTC+8 的 2019 年如期到来，虽然身处的地理位置为 UTC+7，最后的 2018 尚在 UTC-12，但姑且认为 2018 业已永远地消逝了吧。</p><p>新年的钟声敲响之际，我正在玩着 Left 4 Dead 2 里《<a href="https://steamcommunity.com/workshop/filedetails/?id=121247403">2019</a>》这张地图：战役、专家、单机。我承认这是为了应景，而给自己强行安排上的一场戏；而就在午夜 12 时整，我被一只坐在楼梯口的 Witch 扑倒在地，当场去世。这似乎不是什么好兆头——所幸我并不信什么兆头。</p><p>《2019》发布在 2013 年，在这张地图中，建筑色彩鲜艳明亮，天空湛蓝，池水清澈——却毫无生机。除去玩家，仅有的生物便是僵尸。在一副后现代的建筑群中，却缺乏哪怕一丝人性。或许这是作者在六年之前对 2019 年的展望？可惜，他想错了，或许改名《2091》切合的可能性更大一点。但虽又能料到世界乃至自己的运命呢？哪怕是三年之前的 2016 年，四舍五入一下已经是 2020 年的 2016 年，我也难以想象 2019 的场景。</p><p>毕竟再过一年就是 2020 年了啊。一百年后的人们（假如人类尚存），已经是要用「上世纪 10 年代」和「上世纪 20 年代」来区分这两年的了。时间的魔术就在于此，身处历史节点的人们很难有太大的感触，后人转身回顾，却津津有味地对一些自设的标识品头论足。</p><p>或许也到了对过去的 2018 品头论足的时候了吧。说来奇怪，却又老生常谈，总觉得 2017 还在昨天。2018 我干了什么？怎么就这样倏忽而逝？或许把支付宝账单翻出来能让我弄个明白——不，这太残忍了……</p><p>仔细回想，2018，做的太多，遗憾不少。在日常中体验颓废的荒芜；自暴自弃弃考挂科；分别体验超高收入与烂尾项目；在一周之内飞行四次；成功迎来了生命的第二十个年头……一时之间，除却一二不适宜放在此处者，所能回忆起之事不过尔尔。</p><p>或许健忘的我还是不适合回顾历史吧，不如拿黑格尔的名言为自己开脱，将自己糊弄过去。将距离缩放到微观，昨天今天明天，对生活在其中的人而言，只是普通的每一天。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;原文链接：&lt;a href=&quot;https://moy.cat/2019/01/%E5%91%8A%E5%88%AB-2018/&quot;&gt;https://moy.cat/2019/01/%E5%91%8A%E5%88%AB-2018/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;@moycat&lt;/p&gt;
+&lt;</summary>
+      
+    
+    
+    
+    <category term="Archive" scheme="https://vaala.cat/categories/Archive/"/>
+    
+    <category term="Moy" scheme="https://vaala.cat/categories/Archive/Moy/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>2018</title>
+    <link href="https://vaala.cat/2019/01/01/2018/"/>
+    <id>https://vaala.cat/2019/01/01/2018/</id>
+    <published>2018-12-31T16:00:14.000Z</published>
+    <updated>2020-08-22T14:09:56.000Z</updated>
+    
+    <content type="html"><![CDATA[<div id="hexo-blog-encrypt" data-wpm="Vaala觉得你的密码看着不太对." data-whm="Vaala校验文章失败, 不过Vaala还是让你看看解密后的内容."><div class="hbe-input-container"><input type="password" id="hbePass" placeholder="您好, Vaala需要你的密码." /><label>您好, Vaala需要你的密码.</label><div class="bottom-line"></div></div><script id="hbeData" type="hbeData" data-hmacdigest="61269e44e5ba90c3e515f41c1f5541c9026d46d7949040159243f57e70e4e5be">1db6fe3c73c4d7213922c438d4a5742e6717b1f303417eda317bd5216c1f36270f4aa26bfa3f0c3f72cb288631da794b295f9f4e1a937d23aac0001998fbf38c1c4930bda3687270959e5ab6cfcf3237667242571f08084d26643ce5a2b21bc1da8b5931d52815f1f4573da29b44808e3421f53dd0736584b220b9e899344db77bd76ee17fff7af60e731e3630c8ef8f5698039923c72b96e8f0e2834eb61bb837aa1f7f97435bcefe5704f7081c09914710ad6a088eb4d5deefa6ffe3b9554fccac5fc8282fe92098fd5ced89312599c354bfa8fe318a7acfc986accd48934f1b6e20a54a7a3a0b49817df86e940b8a595ade6d346b57335f159802c27880c70ca4c695e06f23c8ab1e18347549235acc5d5dc2f20524a7253b41ac8eb7df535540e954c9c1af477305f42dacfb9568a0980f1bff13f91b5799d6ce1f3c1266a98e042e81bbfd7ffb64fbc15f84d04bdfc28d7f9f874af857154039f00a3278daffff174fc53ba1dc16dfa1920ab617ce1d7c6d2edda3fee5bc451a99900fa663cbbe310a6b4440e8d9f67da9155630516d06b5722b2280e2fb3469294ec0931a6412997852c0677979620b46a2561e27a9aa48f75c47bfffcf5afcbbbffed5a1922c2b6f96ee9f78017fa23b698b03133b1c7cf510a62a13e639f767a50f44ca1d62c5ff7ad6512d4c135e81ecc255c76c43a1f8a28c0f5bb78ee365ad8428153febea93171aa1d4126bc2d281fb94b926cbe475b390a1fcca39a0531e696a17803b4a003c7bb08dcb20356c45d7bb8bc12f0d8fe40c6f45e2218a1c795c7065205012d687b537d60176980454efbbc9b97d0338b1f714ac000f741634298be046b9cfd1510923db6bbf3d00c8c6434afacef728656a6913c7f1be409890fd36d72a59972d6f04326f939505252da9fc6d8288aebdf83f842acb8afafd19ace83080b3bdd04dd468129bedcb3092e5b19eee480d5a92fbf7e0ce2ecae2ee3484d702e67f6bc8995121db548fc441da5184a076e75cd4cc73ac00d44816a10d3accf69749eb2c73318d4a9ed52ebc12f48fceb0b8b7cf95a15949748456d7c7c59e4572bde537716a580a83fff0b684eb42446dc204dce516a73ac4773250ebeeaec3621fcb5b71ca9710dc33eef853a61842dcc2628727ad3354f0459d35a173d5bf5ac853d81f9d0eaa9186cb42fc5186d2a6aeea39723136283a53b6afa80439aaa45834a6bbefe2c2980dc602cb3ec774122c694e3fea5e21f3b530e4282b28970ac2755387a50884fd0472a5dc8dc3933b27061f926ae60c46f2eb6ad4da0e60fef3591e4b7bac2939f0589d35d62597524d05425be41d326a17133e84f203840adbf5f3a707adbad492cf050e17f0fca46d5efc1979b530a9c2c6c29d31009c3f618208635875bcc5953fdb010ecb1b5e13b886629b63bacf24b8dcadd7a3817eb31852a10d067ef8bc3cbf40172e7bcb63269956a823ba39f5ca5409d61ce3e36fa45f47f190832b285bc94b93cb1769665be11e8d0cf2ec1434bc187d4d3e175e4ebf4851fc746fc8eb9bb82f8b399044ca4ed6dee7900a6c0d17b2015bde759e7e58ee8ed3bc81d72f53d1138d3d8de168171d0dc9c4a41bc96cb29fdfbc684ec1ee533dbf6da846c1c4e7778d15e4bf25362e0598dd9521f9f18da847f98ce02f33cfa9b7aeb01dcfcb8cedb8ec48bbef7941b312bd25db8c1462116aa97b1a8f92b4c5ac2841c799bfc19550a4966e6bf1bf957c696134a084977d8325355fad7fe4079f3e23b14e3abc539c35d084ee3c090b8c4a94f9ae7219</script></div><script src="/lib/blog-encrypt.js"></script><link href="/css/blog-encrypt.css" rel="stylesheet" type="text/css">]]></content>
+    
+    
+    <summary type="html">Vaala把它加密了, 请输入密码查看.</summary>
+    
+    
+    
+    <category term="Life" scheme="https://vaala.cat/categories/Life/"/>
+    
+    
+    <category term="life" scheme="https://vaala.cat/tags/life/"/>
+    
+    <category term="memory" scheme="https://vaala.cat/tags/memory/"/>
+    
+    <category term="passwd" scheme="https://vaala.cat/tags/passwd/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>在wp侧边栏中添加svg按钮并添加动画</title>
+    <link href="https://vaala.cat/2018/08/13/%E5%9C%A8wp%E4%BE%A7%E8%BE%B9%E6%A0%8F%E4%B8%AD%E6%B7%BB%E5%8A%A0svg%E6%8C%89%E9%92%AE%E5%B9%B6%E6%B7%BB%E5%8A%A0%E5%8A%A8%E7%94%BB/"/>
+    <id>https://vaala.cat/2018/08/13/%E5%9C%A8wp%E4%BE%A7%E8%BE%B9%E6%A0%8F%E4%B8%AD%E6%B7%BB%E5%8A%A0svg%E6%8C%89%E9%92%AE%E5%B9%B6%E6%B7%BB%E5%8A%A0%E5%8A%A8%E7%94%BB/</id>
+    <published>2018-08-13T05:39:37.000Z</published>
+    <updated>2020-09-22T00:33:56.706Z</updated>
+    
+    <content type="html"><![CDATA[<p>看了<a href="https://moy.cat/">moycat</a>主页的个人介绍栏那几个按钮动画漂亮得不行（效果图如右下），打算在Wordpress中做一个长得差不多的按钮</p><p>参考<a href="https://codepen.io/luiscarvalho/pen/hJFrxl">https://codepen.io/luiscarvalho/pen/hJFrxl</a>里面的内容，开始操作</p><a id="more"></a><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2018/08/image-1.png"></p><p>moy个人介绍  </p><p>按钮的样式就用svg来画了，我们显然不可能用path一个点一个点的描，所幸Adobe illstrator 可以直接导出svg资源</p><p>在AI中画好按钮图，右键导出到资源选择svg格式（建议小一点，矢量图放大并不会出现边缘锯齿），用编辑器打开保存的文件，删掉不需要的东西</p><p>复制文件内容，进入Wordpress的自定义，在小工具里面添加一个自定义HTML，讲复制的svg文件内容粘贴到内容里面，给svg添加一个链接</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;svg xmlns&#x3D;&quot;http:&#x2F;&#x2F;www.w3.org&#x2F;2000&#x2F;svg&quot; viewBox&#x3D;&quot;0 0 30 30&quot; width&#x3D;&quot;30px&quot; height&#x3D;&quot;30px&quot; &gt;</span><br><span class="line">&lt;defs&gt;&lt;style&gt;.cls-1&#123;fill:#1088ea;&#125;&lt;&#x2F;style&gt;&lt;&#x2F;defs&gt;</span><br><span class="line">&lt;title&gt;zhihu 30px&lt;&#x2F;title&gt;</span><br><span class="line">&lt;g id&#x3D;&quot;zhihu&quot; data-name&#x3D;&quot;zhihu&quot;&gt;</span><br><span class="line">&lt;path class&#x3D;&quot;cls-1&quot; d&#x3D;&quot;M9,20.88a13.25,13.25,0,0,0,1.25-1c.15-.12.22-.11.35,0,1.24,1.35,2.41,2.75,3.58,4.16a2.27,2.27,0,0,1,.44,1.23,8.16,8.16,0,0,1-.28,3L8.83,21.52c-.17.55-.32,1.07-.49,1.58A17.56,17.56,0,0,1,5.84,28,4.91,4.91,0,0,1,2.61,29.9,5.63,5.63,0,0,1,0,29.78c0-.12.11-.15.18-.2a19.68,19.68,0,0,0,4.76-5.51,17.33,17.33,0,0,0,2.18-6.65,4.1,4.1,0,0,1,.06-.49c0-.2,0-.23-.21-.23H.77c-.3,0-.3,0-.23-.3a4.83,4.83,0,0,1,.58-1.52,1.27,1.27,0,0,1,1.17-.65c1.63,0,3.26,0,4.9,0,.18,0,.24,0,.25-.24.09-2.4.13-4.81.16-7.22,0-.18-.06-.22-.22-.22H4.84c-.15,0-.21.06-.27.2a7.26,7.26,0,0,1-.64,1.64,4.19,4.19,0,0,1-3.35,2c-.13,0-.25,0-.14-.18a58,58,0,0,0,3-7.68,3.47,3.47,0,0,1,3-2.48s.09,0,.11,0h.25a.6.6,0,0,1-.08.35C6.24,1.55,5.86,2.76,5.52,4c-.06.23,0,.28.2.27h8.64a.77.77,0,0,1,.89.64,4.48,4.48,0,0,1,.17,1.55c0,.12-.08.13-.17.13H10.41c-.2,0-.26,0-.26.25q0,2.82-.12,5.64c0,.5,0,1-.09,1.5,0,.25.05.29.27.29,1.64,0,3.28,0,4.92,0a.6.6,0,0,1,.62.4,6.13,6.13,0,0,1,.33,1.94c0,.12-.06.13-.15.13H10c-.16,0-.25,0-.26.22a17.87,17.87,0,0,1-.68,3.7.36.36,0,0,0,0,.25s0,0,0,0,0,0,0,0Z&quot;&#x2F;&gt;</span><br><span class="line">&lt;path class&#x3D;&quot;cls-1&quot; d&#x3D;&quot;M30,15.21c0,3.68,0,7.37,0,11.06,0,.23,0,.31-.29.3-1.52,0-3,0-4.56,0a.74.74,0,0,0-.43.12q-1.92,1.24-3.86,2.47c-.24.16-.24.16-.33-.13-.21-.75-.43-1.5-.64-2.25-.05-.16-.11-.22-.28-.22h-2c-.19,0-.22-.06-.22-.23V4.11c0-.19,0-.25.23-.25h12.1c.24,0,.25.1.25.29C30,7.83,30,11.52,30,15.21Zm-10,0v8.68c0,.18,0,.25.22.24s.49,0,.74,0a.27.27,0,0,1,.33.25c.11.45.26.88.37,1.33.06.21.12.24.3.12l2.45-1.58a.7.7,0,0,1,.4-.12h2.39c.23,0,.27-.07.27-.29V6.6c0-.23-.06-.28-.28-.28H20.25c-.23,0-.28.06-.27.29Z&quot;&#x2F;&gt;</span><br><span class="line">&lt;path class&#x3D;&quot;cls-1&quot; d&#x3D;&quot;M9,20.88l0,0s0,0,0,0,0,0,0,0Z&quot;&#x2F;&gt;</span><br><span class="line">&lt;&#x2F;g&gt;</span><br><span class="line">&lt;&#x2F;svg&gt;</span><br></pre></td></tr></table></figure><p><img src= "https://oss.vaa.la/oss/img/loading-nonbg.gif" data-lazy-src="https://oss.vaa.la/oss/wordpress/uploads/2018/08/image-4.png"></p><p>粘贴到内容</p><p>粘贴后不对啊。。。怎么有错误。。。我怎么也不知道。。</p><p>搜索后发现。。。<a href="https://github.com/yaniswang/HTMLHint/wiki/Attr-lowercase">https://github.com/yaniswang/HTMLHint/wiki/Attr-lowercasezhzhi</a> 只需要把viewBox里面的B改成b就行了</p><p>在最后的代码上添加这段代码（hover是指定选择鼠标指针浮动在其上的元素，并设置其样式）这里是鼠标浮动在知乎图标上并且将颜色改为知乎蓝，还要将以前的fill位置改到g标签内，如果不修改位置，就无法使用动画（说多了都是泪），fill=#808080深灰色</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">&lt;a href&#x3D;&quot;https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;huidcs176&quot;&gt;</span><br><span class="line">&lt;svg xmlns&#x3D;&quot;http:&#x2F;&#x2F;www.w3.org&#x2F;2000&#x2F;svg&quot; viewbox&#x3D;&quot;0 0 30 30&quot; width&#x3D;&quot;30px&quot; height&#x3D;&quot;30px&quot; attr-lowercase &#x3D; true&gt;</span><br><span class="line">&lt;style&gt;</span><br><span class="line">a svg:hover #zhihu</span><br><span class="line">&#123;</span><br><span class="line">fill:#1088ea;</span><br><span class="line">&#125;</span><br><span class="line">a svg #zhihu &#123; </span><br><span class="line">  transition: 200ms;</span><br><span class="line">  transition-timing-function: ease-in-out;</span><br><span class="line">  -webkit-transition: 200ms;</span><br><span class="line">  -webkit-transition-timing-function: ease-in-out;</span><br><span class="line">&#125;</span><br><span class="line">&lt;&#x2F;style&gt;</span><br><span class="line">&lt;title&gt;zhihu&lt;&#x2F;title&gt;</span><br><span class="line">&lt;g id&#x3D;&quot;zhihu&quot; data-name&#x3D;&quot;zhihu&quot; fill&#x3D;#808080&gt;</span><br><span class="line">&lt;path class&#x3D;&quot;cls-1&quot; d&#x3D;&quot;M9,20.88a13.25,13.25,0,0,0,1.25-1c.15-.12.22-.11.35,0,1.24,1.35,2.41,2.75,3.58,4.16a2.27,2.27,0,0,1,.44,1.23,8.16,8.16,0,0,1-.28,3L8.83,21.52c-.17.55-.32,1.07-.49,1.58A17.56,17.56,0,0,1,5.84,28,4.91,4.91,0,0,1,2.61,29.9,5.63,5.63,0,0,1,0,29.78c0-.12.11-.15.18-.2a19.68,19.68,0,0,0,4.76-5.51,17.33,17.33,0,0,0,2.18-6.65,4.1,4.1,0,0,1,.06-.49c0-.2,0-.23-.21-.23H.77c-.3,0-.3,0-.23-.3a4.83,4.83,0,0,1,.58-1.52,1.27,1.27,0,0,1,1.17-.65c1.63,0,3.26,0,4.9,0,.18,0,.24,0,.25-.24.09-2.4.13-4.81.16-7.22,0-.18-.06-.22-.22-.22H4.84c-.15,0-.21.06-.27.2a7.26,7.26,0,0,1-.64,1.64,4.19,4.19,0,0,1-3.35,2c-.13,0-.25,0-.14-.18a58,58,0,0,0,3-7.68,3.47,3.47,0,0,1,3-2.48s.09,0,.11,0h.25a.6.6,0,0,1-.08.35C6.24,1.55,5.86,2.76,5.52,4c-.06.23,0,.28.2.27h8.64a.77.77,0,0,1,.89.64,4.48,4.48,0,0,1,.17,1.55c0,.12-.08.13-.17.13H10.41c-.2,0-.26,0-.26.25q0,2.82-.12,5.64c0,.5,0,1-.09,1.5,0,.25.05.29.27.29,1.64,0,3.28,0,4.92,0a.6.6,0,0,1,.62.4,6.13,6.13,0,0,1,.33,1.94c0,.12-.06.13-.15.13H10c-.16,0-.25,0-.26.22a17.87,17.87,0,0,1-.68,3.7.36.36,0,0,0,0,.25s0,0,0,0,0,0,0,0Z&quot;&#x2F;&gt;</span><br><span class="line">&lt;path class&#x3D;&quot;cls-1&quot; d&#x3D;&quot;M30,15.21c0,3.68,0,7.37,0,11.06,0,.23,0,.31-.29.3-1.52,0-3,0-4.56,0a.74.74,0,0,0-.43.12q-1.92,1.24-3.86,2.47c-.24.16-.24.16-.33-.13-.21-.75-.43-1.5-.64-2.25-.05-.16-.11-.22-.28-.22h-2c-.19,0-.22-.06-.22-.23V4.11c0-.19,0-.25.23-.25h12.1c.24,0,.25.1.25.29C30,7.83,30,11.52,30,15.21Zm-10,0v8.68c0,.18,0,.25.22.24s.49,0,.74,0a.27.27,0,0,1,.33.25c.11.45.26.88.37,1.33.06.21.12.24.3.12l2.45-1.58a.7.7,0,0,1,.4-.12h2.39c.23,0,.27-.07.27-.29V6.6c0-.23-.06-.28-.28-.28H20.25c-.23,0-.28.06-.27.29Z&quot;&#x2F;&gt;</span><br><span class="line">&lt;path class&#x3D;&quot;cls-1&quot; d&#x3D;&quot;M9,20.88l0,0s0,0,0,0,0,0,0,0Z&quot;&#x2F;&gt;</span><br><span class="line">&lt;&#x2F;g&gt;</span><br><span class="line">&lt;&#x2F;svg&gt;</span><br><span class="line">&lt;&#x2F;a&gt;</span><br></pre></td></tr></table></figure><p>至此按钮制作完成，但是我们发现这个按钮下面有一条巨丑的下划线，，moy的blog里面是没有这条线的，这个当然是a标签自带的，可以在style标签中添加以下代码消除下划线</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a&#123;text-decoration:none&#125;</span><br></pre></td></tr></table></figure><p>你说啥，没用？这个你就别问我了。。因为我也不知道为啥。。。</p><p>你也许需要编辑主题的css样式表（style.css），我在更换主题后下划线消失，猜测是因为style.css中的设置覆盖了当前设置</p>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;看了&lt;a href=&quot;https://moy.cat/&quot;&gt;moycat&lt;/a&gt;主页的个人介绍栏那几个按钮动画漂亮得不行（效果图如右下），打算在Wordpress中做一个长得差不多的按钮&lt;/p&gt;
+&lt;p&gt;参考&lt;a href=&quot;https://codepen.io/luiscarvalho/pen/hJFrxl&quot;&gt;https://codepen.io/luiscarvalho/pen/hJFrxl&lt;/a&gt;里面的内容，开始操作&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
+    
+    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
+    
+    
+    <category term="css" scheme="https://vaala.cat/tags/css/"/>
+    
+    <category term="html" scheme="https://vaala.cat/tags/html/"/>
+    
+    <category term="svg" scheme="https://vaala.cat/tags/svg/"/>
+    
+    <category term="Wordpress" scheme="https://vaala.cat/tags/Wordpress/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>[转载]此时我躺在成都某宾馆的床上</title>
+    <link href="https://vaala.cat/2018/08/12/%E8%BD%AC%E8%BD%BD%E6%AD%A4%E6%97%B6%E6%88%91%E8%BA%BA%E5%9C%A8%E6%88%90%E9%83%BD%E6%9F%90%E5%AE%BE%E9%A6%86%E7%9A%84%E5%BA%8A%E4%B8%8A/"/>
+    <id>https://vaala.cat/2018/08/12/%E8%BD%AC%E8%BD%BD%E6%AD%A4%E6%97%B6%E6%88%91%E8%BA%BA%E5%9C%A8%E6%88%90%E9%83%BD%E6%9F%90%E5%AE%BE%E9%A6%86%E7%9A%84%E5%BA%8A%E4%B8%8A/</id>
+    <published>2018-08-12T10:50:15.000Z</published>
+    <updated>2020-08-31T02:38:04.000Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="By-moycat"><a href="#By-moycat" class="headerlink" title="By moycat"></a>By <a href="https://moy.cat/">moycat</a></h2><p>Day -8 //由此可见moy黑历史不止一条</p><p>此时我躺在成都某宾馆的床上，等待着随时的入睡。</p><p>所谓竞赛学习，实已名存实亡，与在南充的自习并无两样。虽然，在这边，感觉似乎要好些。</p><a id="more"></a><p>这次在成都，没有半年多前的那般匆忙，倒竟比在南充还要舒爽些。只是成都没有南充的夜雨，很是干燥。</p><p>只是敌不过，还剩八天的这个事实。</p><p>不想谈自己与OI，然而忍不住。</p><p>上个学期的半年来，似乎我没有放超过一丝一毫的精力在OI中。2月培训的囫囵吞枣后，似乎彻底把我噎住了，噎了半年。我怀疑半年来我做过几道OI的题，看过几页OI的书。这并不光彩，然而为何我的雄心竟会萎缩至此？</p><p>或许是我早就隐隐觉得，OI和文化课、其他竞赛的相似点，还是有那么多。</p><p>我之所以讨厌大多数高考要考的文化课，无非是做它们的题很是烦人：如果你知道这个解题套路，那么套进去，得分；你要是不知道，任你想破头皮，做不出来。</p><p>这世界上的问题，的确很多需要经验去解决，经验——或记忆，是人类赖以存活的根基。可是在文化课的题目中，这一点被无限放大了，你就是要背住这个套路，这个题型，这个方法，否则死路一条。也许并不是如此吧，但我所在的环境处处如此，以至于我总觉得其中另有目的。</p><p>但OI不也如此吗？背下各种各样的算法，了解各种各样的题型。在STL还没被解禁的时候，一个排序算法都需要背得想吐。那时候之机械更甚，真不明白明明有STL为什么不允许用。但OI毕竟和其他科目不同，否则我早就放弃了，就像我入学短短几个月后放弃物理竞赛一样。虽然我不知道是不是我对信息技术的喜爱遮住了什么缺点。不过也无所谓了。</p><p>在被噎住半年后，我才重新拿起OI，备战NOIP——也就是这学期开始吧。从找时间练，再晚上放学留在机房练，又停课练，现在跑到成都练。能沉浸在自己喜欢的事情里，感觉真是好啊，只是这时间太短了。但我没有为过去的半年后悔，因为我知道后悔无用，而且就算再来一次，也未必会被我珍惜。</p><p>唯一令我欣慰的是，NOIP就算失败也不会是我OI的终点。还有省选，虽然希望不大。但将来到了大学，我可不想去ACM了……那时既然有了自由，我就会做自己梦想的事。</p><p>离NOIP2015还有短短几天。未来的事，又有谁能预见。</p>]]></content>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;By-moycat&quot;&gt;&lt;a href=&quot;#By-moycat&quot; class=&quot;headerlink&quot; title=&quot;By moycat&quot;&gt;&lt;/a&gt;By &lt;a href=&quot;https://moy.cat/&quot;&gt;moycat&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Day -8 //由此可见moy黑历史不止一条&lt;/p&gt;
+&lt;p&gt;此时我躺在成都某宾馆的床上，等待着随时的入睡。&lt;/p&gt;
+&lt;p&gt;所谓竞赛学习，实已名存实亡，与在南充的自习并无两样。虽然，在这边，感觉似乎要好些。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="Archive" scheme="https://vaala.cat/categories/Archive/"/>
+    
+    <category term="Moy" scheme="https://vaala.cat/categories/Archive/Moy/"/>
+    
+    
+    <category term="转载" scheme="https://vaala.cat/tags/%E8%BD%AC%E8%BD%BD/"/>
+    
+  </entry>
+  
+</feed>
