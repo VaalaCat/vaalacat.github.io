@@ -303,11 +303,11 @@
     
     <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
     
-    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
-    
     <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
     
     <category term="Hardware" scheme="https://vaala.cat/categories/Technique/Hardware/"/>
+    
+    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
     
     
     <category term="camera" scheme="https://vaala.cat/tags/camera/"/>
@@ -476,9 +476,9 @@
     
     <category term="Technique" scheme="https://vaala.cat/categories/Technique/"/>
     
-    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
-    
     <category term="Software" scheme="https://vaala.cat/categories/Technique/Software/"/>
+    
+    <category term="Code" scheme="https://vaala.cat/categories/Technique/Code/"/>
     
     
     <category term="NFC" scheme="https://vaala.cat/tags/NFC/"/>
