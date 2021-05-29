@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ctfd使用ctfd-whale动态靶机插件搭建靶场指南 | VaalaCat</title><meta name="description" content="之前的文章丢了，重新写一个  这里使用赵师傅开发 ctfd-whale 插件实现动态靶机和动态 flag 功能，要知道的是赵师傅开发的插件是为了适合 buu 的架构，对于普通单服务器搭建靶场的需求对应的是赵师傅博客中的第一个模式。由于赵师傅的博客中有一大部分没有解释清楚的地方，这里写一篇文章做详解。 准备安装环境由于动态靶机是使用 docker 实现的，所以首先要准备安装一下 docker 12"><meta name="keywords" content="ctfd,动态靶机,ctfd-whale,ctf,靶场"><meta name="author" content="VaalaCat"><meta name="copyright" content="VaalaCat"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://oss.vaala.ink/img/favicon.png"><link rel="canonical" href="https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><meta property="og:type" content="article"><meta property="og:title" content="ctfd使用ctfd-whale动态靶机插件搭建靶场指南"><meta property="og:url" content="https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/"><meta property="og:site_name" content="VaalaCat"><meta property="og:description" content="之前的文章丢了，重新写一个  这里使用赵师傅开发 ctfd-whale 插件实现动态靶机和动态 flag 功能，要知道的是赵师傅开发的插件是为了适合 buu 的架构，对于普通单服务器搭建靶场的需求对应的是赵师傅博客中的第一个模式。由于赵师傅的博客中有一大部分没有解释清楚的地方，这里写一篇文章做详解。 准备安装环境由于动态靶机是使用 docker 实现的，所以首先要准备安装一下 docker 12"><meta property="og:image" content="https://oss.vaala.ink/img/radom/cover-2.jpg?x-oss-process=style/small"><meta property="article:published_time" content="2020-09-21T06:57:19.000Z"><meta property="article:modified_time" content="2021-04-28T04:41:22.806Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ctfd使用ctfd-whale动态靶机插件搭建靶场指南 | VaalaCat</title><meta name="description" content="引言由于之前的文章使用的是赵师傅的仓库，里面的 ctfd 版本不能保持官网最新，很多师傅都提到了这个问题，于是重新部署了一下 ctfd 并做一下记录该文章历史版本：github 部署这里我使用 frankli0324 师傅 fork 后修改的赵师傅 ctfd whale 的版本进行搭建，并对配置文件和项目文件进行了一些定制后打包到了我自己的仓库方便部署  VaalaCat&#x2F;ctfd_whale V"><meta name="keywords" content="ctfd,动态靶机,ctfd-whale,ctf,靶场"><meta name="author" content="VaalaCat"><meta name="copyright" content="VaalaCat"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="https://oss.vaala.ink/img/favicon.png"><link rel="canonical" href="https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><meta property="og:type" content="article"><meta property="og:title" content="ctfd使用ctfd-whale动态靶机插件搭建靶场指南"><meta property="og:url" content="https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/"><meta property="og:site_name" content="VaalaCat"><meta property="og:description" content="引言由于之前的文章使用的是赵师傅的仓库，里面的 ctfd 版本不能保持官网最新，很多师傅都提到了这个问题，于是重新部署了一下 ctfd 并做一下记录该文章历史版本：github 部署这里我使用 frankli0324 师傅 fork 后修改的赵师傅 ctfd whale 的版本进行搭建，并对配置文件和项目文件进行了一些定制后打包到了我自己的仓库方便部署  VaalaCat&#x2F;ctfd_whale V"><meta property="og:image" content="https://oss.vaala.ink/img/radom/cover-2.jpg?x-oss-process=style/small"><meta property="article:published_time" content="2020-09-21T06:57:19.000Z"><meta property="article:modified_time" content="2021-05-29T16:45:23.174Z"><meta name="twitter:card" content="summary"><script>var activateDarkMode = function () {
   document.documentElement.setAttribute('data-theme', 'dark')
   if (document.querySelector('meta[name="theme-color"]') !== null) {
     document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000')
@@ -90,7 +90,7 @@ if (autoChangeMode === '1') {
   isHome: false,
   isHighlightShrink: false,
   isSidebar: true,
-  postUpdate: '2021-04-28 12:41:22'
+  postUpdate: '2021-05-30 00:45:23'
 }</script><noscript><style>
 #nav {
   opacity: 1
@@ -99,54 +99,49 @@ if (autoChangeMode === '1') {
   opacity: 1
 }
 </style></noscript><meta name="generator" content="Hexo 5.1.0"><link rel="alternate" href="/atom.xml" title="VaalaCat" type="application/atom+xml">
-</head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://oss.vaala.ink/img/avatar.png" onerror="onerror=null;src='https://oss.vaala.ink/img/friend_404.gif'" alt="avatar"/></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">24</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">69</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">10</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div id="body-wrap"><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%87%86%E5%A4%87"><span class="toc-number">1.</span> <span class="toc-text">准备</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83"><span class="toc-number">1.1.</span> <span class="toc-text">安装环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83"><span class="toc-number">1.2.</span> <span class="toc-text">配置环境</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85"><span class="toc-number">2.</span> <span class="toc-text">安装</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8B%E8%BD%BD"><span class="toc-number">2.1.</span> <span class="toc-text">下载</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-number">2.2.</span> <span class="toc-text">配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B9%B3%E5%8F%B0%E8%AE%BE%E7%BD%AE"><span class="toc-number">2.3.</span> <span class="toc-text">平台设置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3"><span class="toc-number">3.</span> <span class="toc-text">问题解决</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#docker-ps%E6%98%BE%E7%A4%BA%E6%AD%A3%E5%B8%B8%E4%BD%86%E6%98%AF%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE"><span class="toc-number">3.1.</span> <span class="toc-text">docker ps显示正常但是无法访问</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://oss.vaala.ink/img/radom/cover-2.jpg?x-oss-process=style/small)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">VaalaCat</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">ctfd使用ctfd-whale动态靶机插件搭建靶场指南</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2020-09-21T06:57:19.000Z" title="发表于 2020-09-21 14:57:19">2020-09-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-04-28T04:41:22.806Z" title="更新于 2021-04-28 12:41:22">2021-04-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Technique/">Technique</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Technique/Environment/">Environment</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><blockquote>
-<p>之前的文章丢了，重新写一个</p>
-</blockquote>
-<p>这里使用赵师傅开发 <code>ctfd-whale</code> 插件实现动态靶机和动态 flag 功能，要知道的是赵师傅开发的插件是为了适合 buu 的架构，对于普通单服务器搭建靶场的需求对应的是赵师傅博客中的第一个模式。由于赵师傅的博客中有一大部分没有解释清楚的地方，这里写一篇文章做详解。</p>
+</head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://oss.vaala.ink/img/avatar.png" onerror="onerror=null;src='https://oss.vaala.ink/img/friend_404.gif'" alt="avatar"/></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">24</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">69</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">10</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div id="body-wrap"><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%83%A8%E7%BD%B2"><span class="toc-number">2.</span> <span class="toc-text">部署</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%87%86%E5%A4%87"><span class="toc-number">2.1.</span> <span class="toc-text">准备</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E7%8E%AF%E5%A2%83"><span class="toc-number">2.1.1.</span> <span class="toc-text">安装环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83"><span class="toc-number">2.1.2.</span> <span class="toc-text">配置环境</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85"><span class="toc-number">2.2.</span> <span class="toc-text">安装</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8B%E8%BD%BD"><span class="toc-number">2.2.1.</span> <span class="toc-text">下载</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-number">2.2.2.</span> <span class="toc-text">配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B9%B3%E5%8F%B0%E8%AE%BE%E7%BD%AE"><span class="toc-number">2.2.3.</span> <span class="toc-text">平台设置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">2.3.</span> <span class="toc-text">总结</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">3.</span> <span class="toc-text">参考</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://oss.vaala.ink/img/radom/cover-2.jpg?x-oss-process=style/small)"><nav id="nav"><span class="pull-left" id="blog_name"><a class="blog_title" id="site-name" href="/">VaalaCat</a></span><span class="pull-right menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">ctfd使用ctfd-whale动态靶机插件搭建靶场指南</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2020-09-21T06:57:19.000Z" title="发表于 2020-09-21 14:57:19">2020-09-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-05-29T16:45:23.174Z" title="更新于 2021-05-30 00:45:23">2021-05-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Technique/">Technique</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Technique/Environment/">Environment</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>由于之前的文章使用的是赵师傅的仓库，里面的 ctfd 版本不能保持官网最新，很多师傅都提到了这个问题，于是重新部署了一下 ctfd 并做一下记录<br>该文章历史版本：<a target="_blank" rel="noopener" href="https://raw.githubusercontent.com/VaalaCat/vaalacat.github.io/9837ec2c6c09af3a504d2537db304788cccbf006/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/index.html">github</a></p>
+<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><p>这里我使用 <a target="_blank" rel="noopener" href="https://github.com/frankli0324/ctfd-whale">frankli0324</a> 师傅 fork 后修改的赵师傅 ctfd whale 的版本进行搭建，并对配置文件和项目文件进行了一些定制后打包到了我自己的仓库方便部署</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/VaalaCat/ctfd-whale">VaalaCat/ctfd_whale</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/VaalaCat/CTFd">VaalaCat/CTFd</a></li>
+</ul>
 <h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><h3 id="安装环境"><a href="#安装环境" class="headerlink" title="安装环境"></a>安装环境</h3><p>由于动态靶机是使用 <code>docker</code> 实现的，所以首先要准备安装一下 <code>docker</code></p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https:&#x2F;&#x2F;get.docker.com | bash -s docker --mirror Aliyun </span><br><span class="line">sudo usermod -aG docker vaala</span><br></pre></td></tr></table></figure>
 <p>然后还要准备 <code>docker-compose</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install docker-compose -y</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo pip3 install docker-compose -i https:&#x2F;&#x2F;pypi.tuna.tsinghua.edu.cn&#x2F;simple</span><br></pre></td></tr></table></figure>
 
 <h3 id="配置环境"><a href="#配置环境" class="headerlink" title="配置环境"></a>配置环境</h3><p>由于插件使用的是集群的模式，所以这里要创建一个单个服务器的集群</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker swarm init</span><br></pre></td></tr></table></figure>
-<p>然后获得节点 ID</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker node ls | awk &#39;&#123;print $1&#125;&#39;</span><br></pre></td></tr></table></figure>
-<p>然后将这个 ID 代表的服务器加入集群</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker node update --label-add name&#x3D;linux-1 unvkxf584pwghr2klw******* # 这里换成上一步找到的 ID</span><br></pre></td></tr></table></figure>
-<p>最后要准备的是给 <code>docker</code> 更换镜像源，这里推荐将 daocloud 和 aliyun 的源都添加进去，不然会很龟速，也可以给 docker 设置镜像源代理如下</p>
+<p>然后将这个服务器加入集群</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker node update --label-add&#x3D;&#39;name&#x3D;linux-1&#39; $(docker node ls -q)</span><br></pre></td></tr></table></figure>
+<p>最后要准备的是给 <code>docker</code> 更换镜像源，这里推荐将 daocloud 和 aliyun 的源都添加进去，不然会很龟速，修改文件 <code>/etc/docker/daemon.json</code>，两个镜像都需要自己取申请一下，改完后类似下面这样</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;registry-mirrors&quot;: [&quot;https:&#x2F;&#x2F;233666.mirror.aliyuncs.com&quot;,&quot;http:&#x2F;&#x2F;233666.m.daocloud.io&quot;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也可以给 docker 设置镜像源代理</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p &#x2F;etc&#x2F;systemd&#x2F;system&#x2F;docker.service.d</span><br><span class="line">sudo nano &#x2F;etc&#x2F;systemd&#x2F;system&#x2F;docker.service.d&#x2F;http-proxy.conf</span><br></pre></td></tr></table></figure>
 <p>然后添加内容，这里是我自己的代理</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment&#x3D;&quot;HTTP_PROXY&#x3D;http:&#x2F;&#x2F;127.0.0.1:7890&quot;</span><br><span class="line">Environment&#x3D;&quot;HTTPS_PROXY&#x3D;http:&#x2F;&#x2F;127.0.0.1:7890&quot;</span><br></pre></td></tr></table></figure>
 <p>重启生效</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure>
 
-<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><h3 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h3><p>首先使用赵师傅仓库中的 <code>ctfd</code>，已经做好了镜像换源等工作。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone -b single https:&#x2F;&#x2F;github.com&#x2F;glzjin&#x2F;CTFd.git</span><br></pre></td></tr></table></figure>
-<p>由于国内访问 github 会出现速度慢的问题，所以这里我将源码上传到了我的服务器以供高速下载</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -o CTFd.tar https:&#x2F;&#x2F;file.vaa.la&#x2F;s&#x2F;Swo9frbkoAMncky&#x2F;download &amp;&amp; tar -xf CTFd.tar</span><br></pre></td></tr></table></figure>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><h3 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h3><p>首先使用我仓库中的 <code>ctfd</code>，已经做好了镜像换源等工作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone https:&#x2F;&#x2F;github.com&#x2F;VaalaCat&#x2F;CTFd.git --depth&#x3D;1</span><br></pre></td></tr></table></figure>
 
-<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd CTFd</span><br><span class="line">nano frp&#x2F;frps.ini # token 一定要随机</span><br><span class="line">nano frp&#x2F;frpc.ini # token 一定要随机</span><br></pre></td></tr></table></figure>
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd CTFd</span><br><span class="line">nano conf&#x2F;frp&#x2F;frps.ini # token 一定要随机</span><br><span class="line">nano conf&#x2F;frp&#x2F;frpc.ini # token 一定要随机</span><br></pre></td></tr></table></figure>
 <p>这里给出 <code>frp</code> 两个配置文件的内容供参考，大致就是只需要修改 token</p>
 <ul>
-<li><p><code>frpc.ini</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[common]</span><br><span class="line">token &#x3D; randomme</span><br><span class="line">server_addr &#x3D; 172.1.0.1</span><br><span class="line">server_port &#x3D; 6490</span><br><span class="line">pool_count &#x3D; 200</span><br><span class="line">tls_enable &#x3D; true</span><br><span class="line"></span><br><span class="line">admin_addr &#x3D; 172.1.0.3</span><br><span class="line">admin_port &#x3D; 7400</span><br></pre></td></tr></table></figure>
-</li>
 <li><p><code>frps.ini</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[common]</span><br><span class="line">bind_port &#x3D; 6490</span><br><span class="line">token &#x3D; randomme</span><br></pre></td></tr></table></figure>
-
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[common]</span><br><span class="line">bind_port &#x3D; 7000</span><br><span class="line">vhost_http_port &#x3D; 9123</span><br><span class="line">token &#x3D; your_token</span><br><span class="line">subdomain_host &#x3D; node.vaala.ink</span><br></pre></td></tr></table></figure>
 </li>
-</ul>
-<p>修改好之后我们修改一下 Dockerfile 中的源，之前的 tuna 源有些东西有问题，这里换成阿里的，并且要删除 <code>Dockerfile</code> 中的 <code>python</code>，要修改的部分修改后大概就是这一段</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">FROM python:3.7-alpine</span><br><span class="line"></span><br><span class="line">WORKDIR &#x2F;opt&#x2F;CTFd</span><br><span class="line">RUN mkdir -p &#x2F;opt&#x2F;CTFd &#x2F;var&#x2F;log&#x2F;CTFd &#x2F;var&#x2F;uploads</span><br><span class="line"></span><br><span class="line">RUN echo http:&#x2F;&#x2F;mirrors.aliyun.com&#x2F;alpine&#x2F;v3.12&#x2F;main&#x2F; &gt; &#x2F;etc&#x2F;apk&#x2F;repositories &amp;&amp; \</span><br><span class="line">    apk update</span><br><span class="line"></span><br><span class="line">RUN sed -i &#39;s&#x2F;dl-cdn.alpinelinux.org&#x2F;mirrors.aliyun.com&#x2F;g&#39; &#x2F;etc&#x2F;apk&#x2F;repositories</span><br><span class="line"></span><br><span class="line">RUN apk add \</span><br><span class="line">        linux-headers \</span><br><span class="line">        libffi-dev \</span><br><span class="line">        gcc \</span><br><span class="line">        g++ \</span><br><span class="line">        make \</span><br><span class="line">        musl-dev \</span><br><span class="line">        mysql-client \</span><br><span class="line">        git \</span><br><span class="line">        openssl-dev</span><br></pre></td></tr></table></figure>
-<p>删除 <code>requirements.txt</code> 中的 <code>gevent</code> 版本号</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">datafreeze&#x3D;&#x3D;0.1.0</span><br><span class="line">gevent</span><br><span class="line">python-dotenv&#x3D;&#x3D;0.10.3</span><br></pre></td></tr></table></figure>
+<li><p><code>frpc.ini</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[common]</span><br><span class="line">token &#x3D; your_token</span><br><span class="line">server_addr &#x3D; 172.1.0.3</span><br><span class="line">server_port &#x3D; 7000</span><br><span class="line">admin_addr &#x3D; 172.1.0.4</span><br><span class="line">admin_port &#x3D; 7400</span><br></pre></td></tr></table></figure>
 <p>然后安装插件并启动</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git submodule update --init</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
 <p>不出意外就应该成功了，使用</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker ps -a</span><br></pre></td></tr></table></figure>
 <p>查看是否有没有正确启动的镜像</p>
-<h3 id="平台设置"><a href="#平台设置" class="headerlink" title="平台设置"></a>平台设置</h3><p>浏览器访问 8000 端口进入平台，完成平台基本配置，然后进入后台，右上角的插件中进入 <code>ctfd-whale</code> 设置，按下面的内容填写配置</p>
+</li>
+</ul>
+<h3 id="平台设置"><a href="#平台设置" class="headerlink" title="平台设置"></a>平台设置</h3><p>浏览器访问 9124 端口进入平台，完成平台基本配置，然后进入后台，右上角的插件中进入 <code>Whale</code> 设置，其中，左侧 Docker 菜单栏如果没有特殊需求无需更改，只需更改左侧 Frp 菜单栏中的内容</p>
 <table>
 <thead>
 <tr>
@@ -155,76 +150,24 @@ if (autoChangeMode === '1') {
 </tr>
 </thead>
 <tbody><tr>
-<td>Docker API URL</td>
-<td><code>unix://var/run/docker.sock</code></td>
+<td>Http Domain Suffix</td>
+<td><code>node.vaala.ink</code> 这里填写使用http方式访问靶机的泛解析域名</td>
 </tr>
 <tr>
-<td>Frp API IP</td>
-<td><code>172.1.0.3</code></td>
+<td>Http Port</td>
+<td><code>9123</code>          这里填写frps中的vhost_http_port，该端口为http方式靶机访问的端口</td>
 </tr>
 <tr>
-<td>Frp API Port</td>
-<td><code>7400</code></td>
+<td>Direct IP Address</td>
+<td><code>chive.vaala.cloud</code> 这里填写服务器ip，用于显示Direct方式访问的题目的IP</td>
 </tr>
 <tr>
-<td>Frp Http Domain Suffix</td>
-<td><code>None</code></td>
+<td>Direct Minimum Port</td>
+<td><code>9125</code>          这里填写用于动态靶机Direct方式的开始端口</td>
 </tr>
 <tr>
-<td>Frp Http Port</td>
-<td><code>80</code></td>
-</tr>
-<tr>
-<td>Frp Direct IP Address</td>
-<td><code>chive.vaala.cloud</code></td>
-</tr>
-<tr>
-<td>Frp Direct Minimum Port</td>
-<td><code>28000</code></td>
-</tr>
-<tr>
-<td>Frp Direct Maximum Port</td>
-<td><code>28100</code></td>
-</tr>
-<tr>
-<td>Max Container Count</td>
-<td><code>100</code></td>
-</tr>
-<tr>
-<td>Max Renewal Times</td>
-<td><code>5</code></td>
-</tr>
-<tr>
-<td>Frp config template</td>
-<td>这里填写之前 <code>frpc.ini</code> 的内容</td>
-</tr>
-<tr>
-<td>Docker Auto Connect Containers</td>
-<td><code>ctfd_frpc_1</code></td>
-</tr>
-<tr>
-<td>Docker Auto Connect Network</td>
-<td><code>ctfd_frp_containers</code></td>
-</tr>
-<tr>
-<td>Docker Dns Setting</td>
-<td>可留空或填写外部dns</td>
-</tr>
-<tr>
-<td>Docker Swarm Nodes</td>
-<td><code>linux-1</code></td>
-</tr>
-<tr>
-<td>Docker Multi-Container Network Subnet</td>
-<td><code>173.0.0.0/16</code></td>
-</tr>
-<tr>
-<td>Docker Multi-Container Network Subnet New Prefix</td>
-<td><code>24</code></td>
-</tr>
-<tr>
-<td>Docker Container Timeout</td>
-<td><code>3600</code></td>
+<td>Direct Maximum Port</td>
+<td><code>9129</code>          这里填写结束端口</td>
 </tr>
 </tbody></table>
 <p>最后点一下更新就可以保存配置了，填写完成后新建题目测试是否成功，按下表新建题目，表中没有提到的保持默认就好</p>
@@ -248,6 +191,18 @@ if (autoChangeMode === '1') {
 <td><code>test</code></td>
 </tr>
 <tr>
+<td>Docker Image</td>
+<td><code>vaalacat/push_f12</code></td>
+</tr>
+<tr>
+<td>Frp Redirect Type</td>
+<td><code>Direct</code> 或者 <code>Http</code></td>
+</tr>
+<tr>
+<td>Frp Redirect Port</td>
+<td><code>80</code></td>
+</tr>
+<tr>
 <td>Initial Value</td>
 <td><code>1</code></td>
 </tr>
@@ -260,31 +215,22 @@ if (autoChangeMode === '1') {
 <td><code>1</code></td>
 </tr>
 <tr>
-<td>Docker Image</td>
-<td><code>vaalacat/push_f12</code></td>
-</tr>
-<tr>
-<td>Frp Redirect Type</td>
-<td><code>Direct</code></td>
-</tr>
-<tr>
-<td>Frp Redirect Port</td>
-<td><code>80</code></td>
-</tr>
-<tr>
 <td>Score Type</td>
 <td><code>dynamic score</code></td>
 </tr>
 </tbody></table>
 <p>新建题目过后点击启动，然后等待靶机创建，可以在服务器中 <code>docker ps -a</code> 查看是否启动，若启动成功则搭建完成</p>
-<h2 id="问题解决"><a href="#问题解决" class="headerlink" title="问题解决"></a>问题解决</h2><h3 id="docker-ps显示正常但是无法访问"><a href="#docker-ps显示正常但是无法访问" class="headerlink" title="docker ps显示正常但是无法访问"></a>docker ps显示正常但是无法访问</h3><p>可以使用 <code>docker logs ctfd_ctfd_1</code> 查看输出，如果发现输出类似：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;site-packages&#x2F;tzlocal&#x2F;unix.py:158: UserWarning: Can not find any timezone configuration, defaulting to UTC.</span><br><span class="line">  warnings.warn(&#39;Can not find any timezone configuration, defaulting to UTC.&#39;)</span><br><span class="line">Starting CTFd</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;importlib&#x2F;_bootstrap.py:219: RuntimeWarning: greenlet.greenlet size changed, may indicate binary incompatibility. Expected 144 from C header, got 152 from PyObject</span><br><span class="line">  return f(*args, **kwds)</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;importlib&#x2F;_bootstrap.py:219: RuntimeWarning: greenlet.greenlet size changed, may indicate binary incompatibility. Expected 144 from C header, got 152 from PyObject</span><br><span class="line">  return f(*args, **kwds)</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;lib&#x2F;python3.7&#x2F;importlib&#x2F;_bootstrap.py:219: RuntimeWarning: greenlet.greenlet size changed, may indicate binary incompatibility. Expected 144 from C header, got 152 from PyObject</span><br><span class="line">  return f(*args, **kwds)</span><br><span class="line">[2020-10-11 12:31:30 +0000] [1] [INFO] Starting gunicorn 19.9.0</span><br><span class="line">[2020-10-11 12:31:30 +0000] [1] [INFO] Listening at: http:&#x2F;&#x2F;0.0.0.0:8000 (1)</span><br><span class="line">[2020-10-11 12:31:30 +0000] [1] [INFO] Using worker: gevent</span><br><span class="line">[2020-10-11 12:31:30 +0000] [21] [INFO] Booting worker with pid: 21</span><br><span class="line">[2020-10-11 12:31:31 +0000] [23] [INFO] Booting worker with pid: 23</span><br><span class="line">[2020-10-11 12:31:32 +0000] [25] [INFO] Booting worker with pid: 25</span><br><span class="line">[2020-10-11 12:31:34 +0000] [27] [INFO] Booting worker with pid: 27</span><br><span class="line">[2020-10-11 12:31:35 +0000] [29] [INFO] Booting worker with pid: 29</span><br><span class="line">[2020-10-11 12:31:36 +0000] [31] [INFO] Booting worker with pid: 31</span><br><span class="line">[2020-10-11 12:31:37 +0000] [33] [INFO] Booting worker with pid: 33</span><br><span class="line">[2020-10-11 12:31:39 +0000] [35] [INFO] Booting worker with pid: 35</span><br><span class="line">[2020-10-11 12:31:40 +0000] [37] [INFO] Booting worker with pid: 37</span><br></pre></td></tr></table></figure>
-<p>则问题为<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/64105616/greenlet-runtime-error-and-deployed-app-in-docker-keeps-booting-all-the-workers">这篇文章中所提到的问题</a>，只需要删除 <code>requirements.txt</code> 中的 <code>gevent</code> 版本号即可，结果类似下面这样</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">redis&#x3D;&#x3D;3.3.11</span><br><span class="line">datafreeze&#x3D;&#x3D;0.1.0</span><br><span class="line">gevent</span><br><span class="line">python-dotenv&#x3D;&#x3D;0.10.3</span><br><span class="line">flask-restplus&#x3D;&#x3D;0.13.0</span><br></pre></td></tr></table></figure>
-<p>然后 <code>docker-compose down</code> 再启动 <code>docker-compose up -d --build</code> 不出意外应该就能解决问题</p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.zhaoj.in/read-6333.html">CTFd-Whale 推荐部署实践</a></p>
-</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>我的仓库中所使用的端口一共有三类，需要修改平台信息请按照以下文件位置修改</p>
+<ul>
+<li>9123:<br>  默认 http 模式靶机访问端口，需要修改 <code>frps.ini</code>、后台中的 <code>Http Port</code>、<code>docker-compose.yml</code></li>
+<li>9124:<br>  默认为 ctfd 端口，需要修改 <code>docker-compose.yml</code></li>
+<li>9125-9129:<br>  动态靶机 Direct 模式端口，需要修改 <code>docker-compose.yml</code>、<code>frpc.ini</code>、后台中的端口范围</li>
+</ul>
+<p>完成以上文件的修改即可完成对平台用到端口的修改</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/frankli0324/ctfd-whale">ctfd_whale</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zhaoj.in/read-6333.html">CTFd-Whale 推荐部署实践</a></li>
+</ul>
 </div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">VaalaCat</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/">https://vaala.cat/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://vaala.cat" target="_blank">VaalaCat</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/ctfd/">ctfd</a><a class="post-meta__tags" href="/tags/%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA/">动态靶机</a><a class="post-meta__tags" href="/tags/ctfd-whale/">ctfd-whale</a><a class="post-meta__tags" href="/tags/ctf/">ctf</a><a class="post-meta__tags" href="/tags/%E9%9D%B6%E5%9C%BA/">靶场</a></div><div class="post_share"><div class="social-share" data-image="https://oss.vaala.ink/img/radom/cover-2.jpg?x-oss-process=style/small" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2020/09/28/%E9%99%90%E5%88%B6intel%E5%A4%84%E7%90%86%E5%99%A8%E7%9D%BF%E9%A2%91%E6%8F%90%E5%8D%87%E8%BD%BB%E8%96%84%E6%9C%AC%E4%BD%BF%E7%94%A8%E4%BD%93%E9%AA%8C/"><img class="prev-cover" data-lazy-src="https://oss.vaala.ink/img/radom/cover-1.jpg?x-oss-process=style/small" onerror="onerror=null;src='https://oss.vaala.ink/img/404.svg'"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">限制intel处理器睿频提升轻薄本使用体验</div></div></a></div><div class="next-post pull-right"><a href="/2020/08/31/%E5%9C%A8WSL1%E4%B8%AD%E5%BF%AB%E4%B9%90%E7%9A%84%E4%BD%BF%E7%94%A8docker/"><img class="next-cover" data-lazy-src="https://oss.vaala.ink/img/radom/cover-1.jpg?x-oss-process=style/small" onerror="onerror=null;src='https://oss.vaala.ink/img/404.svg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">在WSL1中快乐的使用docker</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By VaalaCat</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font_plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font_minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
  <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js" async></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
   function initValine () {
