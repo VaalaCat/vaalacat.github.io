@@ -1,4 +1,841 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Vaala Cat]]></title><description><![CDATA[Vaala Cat | 鲸喵]]></description><link>https://vaala.cat</link><image><url>https://vaala.cat/images/blog/avatar.png</url><title>Vaala Cat</title><link>https://vaala.cat</link></image><generator>Vaala Cat</generator><lastBuildDate>Fri, 12 Apr 2024 16:10:16 GMT</lastBuildDate><atom:link href="https://vaala.cat/atom.xml" rel="self" type="application/rss+xml"/><language><![CDATA[zh-CN]]></language><item><title><![CDATA[frp-panel开发笔记及使用说明]]></title><description><![CDATA[
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Vaala Cat]]></title><description><![CDATA[Vaala Cat | 鲸喵]]></description><link>https://vaala.cat</link><image><url>https://vaala.cat/images/blog/avatar.png</url><title>Vaala Cat</title><link>https://vaala.cat</link></image><generator>Vaala Cat</generator><lastBuildDate>Fri, 25 Oct 2024 15:57:48 GMT</lastBuildDate><atom:link href="https://vaala.cat/atom.xml" rel="self" type="application/rss+xml"/><language><![CDATA[zh-CN]]></language><item><title><![CDATA[一点荔枝派 rv nano 上手记录]]></title><description><![CDATA[
+> 荔枝派 LicheeRV nano 使用记录
+
+## 一点背景
+
+最近一直在想做一个24小时录音设备，联网后音频识别存储文字，AI提问+总结的小玩具。所以要购置一些制作 demo 的设备。上淘宝看了前些日子很火的Milk-V duo，发现没有Wifi，很难受。万能的淘宝仿佛知道我的心声，以切到主页就注意到一块近乎完美的开发板 Lichee Pi RV nano。三核心，两颗大核分别是 1GHz RISC-V C906 和 ARM A53，但只能二选一启动，很神奇的异构设计，小核心是一颗频率略低的 C906，如果用 ARM 大核 + RISCV 小核，与RK的RV1106也非常类似，看来各家都想做这种芯片。接口也是非常丰富，I2C/SPI/USB/GPIO/UART/CSI/DSI 应有尽有，甚至板载了一颗麦克风，这简直是为我的场景量身定做。
+
+这款开发板有几种规格，区别在于是否包含RJ45网口/WIFI&BT。这里我购买的是WiFi，不含RJ45版。
+
+## 几张照片
+
+<div className="gird gird-cols-1 sm:grid-cols-2">
+  <img src="/images/lichee/licheerv-nano-debian-boot.jpg" />
+  <img src="/images/lichee/licheerv-nano-debian-info.jpg" />
+</div>
+
+## 下点镜像
+
+到手我们先用原版镜像启动。
+
+- 在 Github下载镜像：[https://github.com/sipeed/LicheeRV-Nano-Build](https://github.com/sipeed/LicheeRV-Nano-Build)
+   
+在Mac上，我选择使用BalenaEtcher烧录镜像
+Linux可选dd，Windows可选rufus和BalenaEtcher烧录即可
+
+## 连下Mac
+荔枝派RV nano 设计使用RNDIS进行通信开发，不幸的是MacOS没有官方内置驱动。需要安装某位开源大善人的驱动：
+
+- [https://github.com/jwise/HoRNDIS/files/7323710/HoRNDIS-M1.zip](https://github.com/jwise/HoRNDIS/files/7323710/HoRNDIS-M1.zip)    
+   
+AppleSilicon 需要干掉 kext 保护后才能使用。
+首先关机，然后长按开机键进入恢复模式后打开终端
+```
+csrutil disable
+(请输入你的密码)
+csrutil enable --without kext
+(请输入你的密码)
+```
+
+完成后关闭终端，进入实用工具启用内核扩展宽松限制
+
+随后重启后在系统设置中“隐私与安全”打开系统拓展，再次重启即可在系统设置的网络中看到你的荔枝派了
+
+## 编译点官方SDK buildroot
+
+官方提供的镜像可谓是非常干净，没有包管理器，让我很难做人，所以我们需要帮官方适配一下 Debian 和 Arch Linux
+
+为了环境的一致性，最好有一个纯净的 Linux 系统。这里我在垃圾箱中翻出来一只 SteamDeck，在里面装了一只 Debian 虚拟机作为操作环境。
+
+因为官方的镜像实在是过于干净，直接替换 rootfs 完全无法支持 Debian 或 Arch 启动首先需要按以下内容修改SDK对应文件，主要是一些systemd的依赖
+
+```diff
+--- a/build/boards/sg200x/sg2002_licheervnano_sd/linux/sg2002_licheervnano_sd_defconfig
++++ b/build/boards/sg200x/sg2002_licheervnano_sd/linux/sg2002_licheervnano_sd_defconfig
+@@ -578,3 +578,23 @@ CONFIG_SPI_SPIDEV=y
+ CONFIG_EPOLL=y
+ CONFIG_IO_URING=y
+ CONFIG_SIGNALFD=y
++
++# for systemd
++CONFIG_CGROUPS=y
++CONFIG_CGROUP_FREEZER=y
++CONFIG_CGROUP_PIDS=y
++CONFIG_CGROUP_DEVICE=y
++CONFIG_CPUSETS=y
++CONFIG_PROC_PID_CPUSET=y
++CONFIG_CGROUP_CPUACCT=y
++CONFIG_PAGE_COUNTER=y
++CONFIG_MEMCG=y
++CONFIG_CGROUP_SCHED=y
++CONFIG_NAMESPACES=y
++CONFIG_OVERLAY_FS=y
++CONFIG_AUTOFS4_FS=y
++CONFIG_SIGNALFD=y
++CONFIG_TIMERFD=y
++CONFIG_EPOLL=y
++CONFIG_IPV6=y
++CONFIG_FANOTIFY
+diff --git a/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py b/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py
+index 4c676f060..467e93a2e 100755
+--- a/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py
++++ b/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py
+@@ -41,6 +41,7 @@ class MemoryMap:
+     # Multimedia buffer. Used by u-boot/kernel/FreeRTOS
+     # =================
+     ION_SIZE = 75 * SIZE_1M
++    # ION_SIZE = 0 * SIZE_1M
+     H26X_BITSTREAM_SIZE = 2 * SIZE_1M
+     H26X_ENC_BUFF_SIZE = 0
+     ISP_MEM_BASE_SIZE = 20 * SIZE_1M
+diff --git a/build/tools/common/sd_tools/genimage.cfg b/build/tools/common/sd_tools/genimage.cfg
+index b97c9e958..6e970200b 100644
+--- a/build/tools/common/sd_tools/genimage.cfg
++++ b/build/tools/common/sd_tools/genimage.cfg
+@@ -13,7 +13,7 @@ image rootfs.ext4 {
+        ext4 {
+                label = "rootfs"
+        }
+-       size = 256M
++       size = 1G
+     mountpoint = "/"
+ }
+```
+
+官方github文档的Readme有点问题，不能按照readme中的命令直接build，需要去github action workflow 中捞所需的文件
+
+```bash
+git clone https://github.com/sipeed/LicheeRV-Nano-Build --depth=1
+cd LicheeRV-Nano-Build
+wget https://sophon-file.sophon.cn/sophon-prod-s3/drive/23/03/07/16/host-tools.tar.gz
+tar xf host-tools.tar.gz
+```
+
+准备好之后开始编译
+
+```bash
+source build/cvisetup.sh
+defconfig sg2002_licheervnano_sd
+build_all
+```
+
+编译完成后会给出目标文件的位置
+
+```
+--------------->8------------------
+# please use win32diskimager or dd command write it into sdcard
+
+
+/mnt/li/LicheeRV-Nano-Build/install/soc_sg2002_licheervnano_sd/images/2024-05-26-04-29-e4c87a.img
+
+
+--------------->8------------------
+/mnt/li/LicheeRV-Nano-Build
+```
+
+得到img文件后即可开始移植
+
+## img文件扩容
+
+首先准备一个空文件，将内容追加到img文件里，这里我准备扩容500M 
+
+```bash
+dd if=/dev/zero of=new.img bs=1M count=500
+cat new.img >> origin.img
+```
+
+通过loop设备使用partd操作分区
+
+```bash
+sudo losetup -f # 得到空闲loop设备
+sudo losetup -P /dev/loop0 /path/to/origin.img
+sudo parted /dev/loop0
+# resizepart 2 100%
+sudo resize2fs /dev/loop0p2
+sudo losetup -d /dev/loop0 
+```
+
+即可，使用fdisk可以查看
+
+## 移植个 Debian 到 LicheeRV nano   
+
+由于目前 Debian 已经将 rv64 视作官方架构支持，我们无需自行制作 ports。在这里下载 RiscV 版本的镜像：   
+- [Debian Quick Image Baker pre-baked images](https://people.debian.org/~gio/dqib/)   
+   
+解压后得到这样的目录，我们只需要其中的 `image.qcow2`。
+```
+├── image.qcow2
+├── initrd
+├── kernel
+├── readme.txt
+├── ssh_user_ecdsa_key
+├── ssh_user_ed25519_key
+└── ssh_user_rsa_key
+```
+
+这是 QEMU 使用的镜像格式，我们需要先安装 qemu 然后挂载为网盘。
+
+```bash
+sudo apt update
+sudo apt install qemu-utils
+# 开启 NBD
+sudo modprobe nbd max_part=8
+sudo qemu-nbd -c /dev/nbd0 image.qcow2
+sudo mkdir /mnt/debian-rv
+sudo mount /dev/nbd0p2 /mnt/debian-rv
+# 验证是否能读出两个分区
+sudo fdisk -l /dev/nbd0
+```
+
+同时把之前的 loop 设备挂载到这个`/mnt/lichee`下，开始替换文件：
+
+```bash
+sudo mkdir /mnt/lichee
+sudo losetup -f # 找到lo设备名，这里我是/dev/loop0
+sudo losetup -P /dev/loop0 /path/to/xxxx.img
+sudo cp -r /mnt/lichee/mnt /tmp # 保存一些重要文件，包含驱动
+sudo cp -r /mnt/lichee/lib/firmware /tmp
+sudo cp -r /mnt/lichee/etc/init.d /tmp
+
+sudo rm -rf /mnt/lichee/*
+sudo cp -a /mnt/debian-rv/* /mnt/lichee
+
+sudo cp -r /tmp/mnt/* /mnt/lichee/mnt
+sudo cp -r /tmp/init.d /mnt/lichee/mnt
+sudo cp -r /tmp/firmware /mnt/lichee/lib
+```
+
+完成后就可以取消挂载刷进 SD 卡尝试启动设备了 （如果需要rndis，请再看看下面的RNDIS一节，再取消挂载）
+
+```bash
+sudo umount /mnt/lichee
+sudo umount /mnt/debian-rv
+sudo losetup -d /dev/loop0
+sudo qemu-nbd -d /dev/nbd0
+```
+
+进入设备安装 NetworkManager，我们使用 RNDIS 把电脑当作 proxy 连接 apt 源，修改 `/etc/apt/apt.conf`
+
+```ini
+Acquire::http::Proxy "http://192.168.42.xx:xxxx/";
+Acquire::Languages "none";
+```
+
+其中 xx 是自己电脑给 RNDIS 接口配置的 IP，电脑上需要挂一个 http proxy server 连接到
+
+```bash
+# apt 可能 OOM，创建 swap
+dd if=/dev/zero of=/swap bs=1M count=512
+chmod 0600 /swap
+mkswap /swap
+swapon /swap
+
+apt update
+apt install network-manager
+systemctl enable NetworkManager
+systemctl start NetworkManager
+# 替换 <WIFI_SSID> 和 <PASSWORD> 为 wifi AP 名称和密码
+nmcli device wifi connect <WIFI_SSID> password <PASSWORD>
+```
+
+此时应该可以正常联网使用了，但是我们需要下载依赖来制作镜像，
+
+```bash
+export PKG=network-manager
+apt download $PKG && apt depends -i $PKG | awk '/Depends:/ {print $2}' | xargs apt download
+```
+
+还有一些间接依赖，随便放到一个 pkglist 文件中
+
+```bash
+libaudit1
+libbluetooth3
+libc6
+libcurl3t64-gnutls
+libglib2.0-0t64
+libgnutls30t64
+libjansson4
+libmm-glib0
+libndp0
+libnewt0.52
+libnm0
+libpsl5t64
+libreadline8t64
+libselinux1
+libsystemd0
+libteamdctl0
+libudev1
+udev
+adduser
+polkitd
+dbus-session-bus-common
+libbrotli1
+libldap-2.5-0
+libnetfilter-conntrack3
+libnghttp2-14
+libpolkit-agent-1-0
+librtmp1
+libsasl2-modules
+libssh2-1t64
+xml-core
+dbus-user-session
+libduktape207
+libldap-common
+libnfnetlink0
+libpam-systemd
+libpolkit-gobject-1-0
+libsasl2-2
+libsasl2-modules-db
+sgml-base
+
+```
+
+然后安装
+
+```
+cat pkglist | xargs apt download
+```
+
+## 移植个 ArchLinux 到 LicheeRV nano
+
+我们使用这个ArchLinux的 RV64 port
+
+- [https://archriscv.felixc.at/](https://archriscv.felixc.at/)    
+   
+首先下载文件
+
+```bash
+wget https://archriscv.felixc.at/images/archriscv-2024-03-30.tar.zst
+```
+
+然后将原始镜像文件通过loop设备挂载到一个目录
+
+```bash
+sudo losetup -f # 找到lo设备名，这里我是/dev/loop0
+sudo losetup -P /dev/loop0 /path/to/xxxx.img
+sudo mkdir /mnt/lichee
+sudo mount /dev/loop0p2 /mnt/lichee
+```
+
+将目录中的文件替换为我们下载的内容
+
+```bash
+cd /mnt/lichee
+sudo cp -r /mnt/lichee/mnt /tmp # 保存一些重要文件
+sudo cp -r /mnt/lichee/etc/init.d /tmp
+
+sudo rm -rf *
+sudo tar -xvf /path/to/archriscv-2024-03-30.tar.zst -C .
+sudo cp -r /tmp/mnt/* ./mnt
+sudo cp -r /mnt/init.d ./mnt
+```
+
+随后取消挂载 (如果需要RNDIS，请再看看下面的RNDIS一节，再取消挂载)
+
+```bash
+sudo umount /mnt/lichee
+sudo losetup -d /dev/loop0
+```
+
+然后就可以将文件写入SD卡启动设备啦
+
+不过这里 Arch 懒得搞 wifi，后续还是更想用 Debian 一点
+
+## 设置RNDIS
+
+需要写入以下文件到新的系统，记得`chmod +x filename`
+
+- /etc/run_usb.sh    
+
+```bash
+CLASS=acm
+VID=0x3346
+PID=0x1003
+MSC_PID=0x1008
+RNDIS_PID=0x1009
+UVC_PID=0x100A
+UAC_PID=0x100B
+ADB_VID=0x18D1
+ADB_PID=0x4EE0
+ADB_PID_M1=0x4EE2
+ADB_PID_M2=0x4EE4
+MANUFACTURER="Cvitek"
+PRODUCT="USB Com Port"
+PRODUCT_RNDIS="RNDIS"
+PRODUCT_UVC="UVC"
+PRODUCT_UAC="UAC"
+PRODUCT_ADB="ADB"
+ADBD_PATH=/usr/bin/
+SERIAL="0123456789"
+MSC_FILE=$3
+CVI_DIR=/tmp/usb
+CVI_GADGET=$CVI_DIR/usb_gadget/cvitek
+CVI_FUNC=$CVI_GADGET/functions
+FUNC_NUM=0
+MAX_EP_NUM=4
+TMP_NUM=0
+INTF_NUM=0
+EP_IN=0
+EP_OUT=0
+
+case "$2" in
+  acm)
+	CLASS=acm
+	;;
+  msc)
+	CLASS=mass_storage
+	PID=$MSC_PID
+	;;
+  cvg)
+	CLASS=cvg
+	;;
+  rndis)
+	CLASS=rndis
+	PID=$RNDIS_PID
+	PRODUCT=$PRODUCT_RNDIS
+	;;
+  uvc)
+	CLASS=uvc
+	PID=$UVC_PID
+	PRODUCT=$PRODUCT_UVC
+	;;
+  uac1)
+	CLASS=uac1
+	PID=$UAC_PID
+	PRODUCT=$PRODUCT_UAC
+	;;
+  adb)
+	CLASS=ffs.adb
+	VID=$ADB_VID
+	PID=$ADB_PID
+	PRODUCT=$PRODUCT_ADB
+	;;
+  *)
+	if [ "$1" = "probe" ] ; then
+	  echo "Usage: $0 probe {acm|msc|cvg|rndis|uvc|uac1|adb}"
+	  exit 1
+	fi
+esac
+
+calc_func() {
+  FUNC_NUM=$(ls $CVI_GADGET/functions -l | grep ^d | wc -l)
+  echo "$FUNC_NUM file(s)"
+}
+
+res_check() {
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name "acm*" | wc -l)
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name "mass_storage*" | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name "cvg*" | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name "rndis*" | wc -l)
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name "uvc*" | wc -l)
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name "uac1*" | wc -l)
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name ffs.adb | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+
+  if [ "$CLASS" = "acm" ] ; then
+    EP_IN=$(($EP_IN+2))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ "$CLASS" = "mass_storage" ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ "$CLASS" = "cvg" ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ "$CLASS" = "rndis" ] ; then
+    EP_IN=$(($EP_IN+2))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ "$CLASS" = "uvc" ] ; then
+    EP_IN=$(($EP_IN+2))
+  fi
+  if [ "$CLASS" = "uac1" ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ "$CLASS" = "ffs.adb" ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  echo "$EP_IN in ep"
+  echo "$EP_OUT out ep"
+  if [ $EP_IN -gt $MAX_EP_NUM ]; then
+    echo "reach maximum resource"
+    exit 1
+  fi
+  if [ $EP_OUT -gt $MAX_EP_NUM ]; then
+    echo "reach maximum resource"
+    exit 1
+  fi
+}
+
+probe() {
+  if [ ! -d $CVI_DIR ]; then
+    mkdir $CVI_DIR
+  fi
+  if [ ! -d $CVI_DIR/usb_gadget ]; then
+    # Enale USB ConfigFS
+    mount none $CVI_DIR -t configfs
+    # Create gadget dev
+    mkdir $CVI_GADGET
+    # Set the VID and PID
+    echo $VID >$CVI_GADGET/idVendor
+    echo $PID >$CVI_GADGET/idProduct
+    # Set the product information string
+    mkdir $CVI_GADGET/strings/0x409
+    echo $MANUFACTURER>$CVI_GADGET/strings/0x409/manufacturer
+    echo $PRODUCT>$CVI_GADGET/strings/0x409/product
+    echo $SERIAL>$CVI_GADGET/strings/0x409/serialnumber
+    # Set the USB configuration
+    mkdir $CVI_GADGET/configs/c.1
+    mkdir $CVI_GADGET/configs/c.1/strings/0x409
+    echo "config1">$CVI_GADGET/configs/c.1/strings/0x409/configuration
+    # Set the MaxPower of USB descriptor
+    echo 120 >$CVI_GADGET/configs/c.1/MaxPower
+  fi
+  # get current functions number
+  calc_func
+  # assign the class code for composite device
+  if [ ! $FUNC_NUM -eq 0 ]; then
+    echo 0xEF >$CVI_GADGET/bDeviceClass
+    echo 0x02 >$CVI_GADGET/bDeviceSubClass
+    echo 0x01 >$CVI_GADGET/bDeviceProtocol
+  fi
+  # resource check
+  res_check
+  # create the desired function
+  if [ "$CLASS" = "ffs.adb" ] ; then
+    # adb shall be the last function to probe. Override the pid/vid
+    echo $VID >$CVI_GADGET/idVendor
+    echo $PID >$CVI_GADGET/idProduct
+    # choose pid for different function number
+    if [ $INTF_NUM -eq 1 ]; then
+      echo $ADB_PID_M1 >$CVI_GADGET/idProduct
+    fi
+    if [ $INTF_NUM -eq 2 ]; then
+      echo $ADB_PID_M2 >$CVI_GADGET/idProduct
+    fi
+    mkdir $CVI_GADGET/functions/$CLASS
+  else
+    mkdir $CVI_GADGET/functions/$CLASS.usb$FUNC_NUM
+  fi
+  if [ "$CLASS" = "mass_storage" ] ; then
+    echo $MSC_FILE >$CVI_GADGET/functions/$CLASS.usb$FUNC_NUM/lun.0/file
+  fi
+  if [ "$CLASS" = "rndis" ] ; then
+    #OS STRING
+    echo 1 >$CVI_GADGET/os_desc/use
+    echo 0xcd >$CVI_GADGET/os_desc/b_vendor_code
+    echo MSFT100 >$CVI_GADGET/os_desc/qw_sign
+    #COMPATIBLE ID
+    echo RNDIS >$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/compatible_id
+    #MAKE c.1 THE ONE ASSOCIATED WITH OS DESCRIPTORS
+    ln -s $CVI_GADGET/configs/c.1 $CVI_GADGET/os_desc
+    #MAKE "Icons" EXTENDED PROPERTY
+    mkdir $CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Icons
+    echo 2 >$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Icons/type
+    echo "%SystemRoot%\\system32\\shell32.dll,-233" >$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Icons/data
+    #MAKE "Label" EXTENDED PROPERTY
+    mkdir $CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Label
+    echo 1 >$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Label/type
+    echo "XYZ Device" >$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Label/data
+  fi
+
+}
+
+start() {
+  # link this function to the configuration
+  calc_func
+  if [ $FUNC_NUM -eq 0 ]; then
+    echo "Functions Empty!"
+    exit 1
+  fi
+  if [ -d $CVI_GADGET/functions/ffs.adb ]; then
+    FUNC_NUM=$(($FUNC_NUM-1))
+  fi
+  for i in `seq 0 $(($FUNC_NUM-1))`;
+  do
+    find $CVI_GADGET/functions/ -name "*.usb$i" | xargs -I % ln -s % $CVI_GADGET/configs/c.1
+  done
+  if [ -d $CVI_GADGET/functions/ffs.adb ]; then
+    ln -s $CVI_GADGET/functions/ffs.adb $CVI_GADGET/configs/c.1
+    mkdir /dev/usb-ffs/adb -p
+    mount -t functionfs adb /dev/usb-ffs/adb
+    if [ -f $ADBD_PATH/adbd ]; then
+	$ADBD_PATH/adbd &
+    fi
+  else
+    # Start the gadget driver
+    UDC=`ls /sys/class/udc/ | awk '{print $1}'`
+    echo ${UDC} >$CVI_GADGET/UDC
+  fi
+}
+
+stop() {
+  if [ -d $CVI_GADGET/configs/c.1/ffs.adb ]; then
+    pkill adbd
+    rm $CVI_GADGET/configs/c.1/ffs.adb
+  else
+    echo "" >$CVI_GADGET/UDC
+  fi
+  find $CVI_GADGET/configs/ -name "*.usb*" | xargs rm -f
+  rmdir $CVI_GADGET/configs/c.*/strings/0x409/
+  tmp_dirs=$(find $CVI_GADGET/os_desc/c.* -type d)
+  if [ -n tmp_dirs ]; then
+    echo "remove os_desc!"
+    rm -rf $CVI_GADGET/os_desc/c.*/
+    find $CVI_GADGET/functions/ -name Icons | xargs rmdir
+    find $CVI_GADGET/functions/ -name Label | xargs rmdir
+  fi
+  rmdir $CVI_GADGET/configs/c.*/
+  rmdir $CVI_GADGET/functions/*
+  rmdir $CVI_GADGET/strings/0x409/
+  rmdir $CVI_GADGET
+  umount $CVI_DIR
+  rmdir $CVI_DIR
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  probe)
+	probe
+	;;
+  UDC)
+  UDC=`ls /sys/class/udc/ | awk '{print $1}'`
+  echo ${UDC} >$CVI_GADGET/UDC
+	;;
+  *)
+	echo "Usage: $0 probe {acm|msc|cvg|uvc|uac1} {file (msc)}"
+	echo "Usage: $0 start"
+	echo "Usage: $0 stop"
+	exit 1
+esac
+exit $?
+```
+
+- /etc/uhubon.sh    
+
+```bash
+GPIO_HUBPORT_EN=449
+GPIO_ROLESEL=450
+GPIO_HUBRST=451
+SYS_GPIO=/sys/class/gpio
+
+hub_on() {
+  echo "turn on usb hub"
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBPORT_EN ]; then
+      echo $GPIO_HUBPORT_EN >/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_ROLESEL ]; then
+      echo $GPIO_ROLESEL >/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBRST ]; then
+      echo $GPIO_HUBRST >/sys/class/gpio/export
+  fi
+
+  echo "out" >/sys/class/gpio/gpio$GPIO_HUBPORT_EN/direction
+  echo "out" >/sys/class/gpio/gpio$GPIO_ROLESEL/direction
+  echo "out" >/sys/class/gpio/gpio$GPIO_HUBRST/direction
+
+  echo 1 >/sys/class/gpio/gpio$GPIO_HUBPORT_EN/value
+  echo 0 >/sys/class/gpio/gpio$GPIO_ROLESEL/value
+  echo 0 >/sys/class/gpio/gpio$GPIO_HUBRST/value
+}
+
+hub_off() {
+  echo "turn off usb hub"
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBPORT_EN ]; then
+      echo $GPIO_HUBPORT_EN >/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_ROLESEL ]; then
+      echo $GPIO_ROLESEL >/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBRST ]; then
+      echo $GPIO_HUBRST >/sys/class/gpio/export
+  fi
+
+  echo "out" >/sys/class/gpio/gpio$GPIO_HUBPORT_EN/direction
+  echo "out" >/sys/class/gpio/gpio$GPIO_ROLESEL/direction
+  echo "out" >/sys/class/gpio/gpio$GPIO_HUBRST/direction
+
+  echo 0 >/sys/class/gpio/gpio$GPIO_HUBPORT_EN/value
+  echo 1 >/sys/class/gpio/gpio$GPIO_ROLESEL/value
+  echo 1 >/sys/class/gpio/gpio$GPIO_HUBRST/value
+}
+
+inst_mod() {
+  insmod /mnt/system/ko/configfs.ko
+  insmod /mnt/system/ko/libcomposite.ko
+  insmod /mnt/system/ko/u_serial.ko
+  insmod /mnt/system/ko/usb_f_acm.ko
+  insmod /mnt/system/ko/cvi_usb_f_cvg.ko
+  insmod /mnt/system/ko/usb_f_uvc.ko
+  insmod /mnt/system/ko/usb_f_fs.ko
+  insmod /mnt/system/ko/u_audio.ko
+  insmod /mnt/system/ko/usb_f_uac1.ko
+  insmod /mnt/system/ko/usb_f_serial.ko
+  insmod /mnt/system/ko/usb_f_mass_storage.ko
+  insmod /mnt/system/ko/u_ether.ko
+  insmod /mnt/system/ko/usb_f_ecm.ko
+  insmod /mnt/system/ko/usb_f_eem.ko
+  insmod /mnt/system/ko/usb_f_rndis.ko
+}
+
+case "$1" in
+  host)
+	insmod /mnt/system/ko/dwc2.ko
+	hub_on
+	;;
+  device)
+	hub_off
+	inst_mod
+	echo device > /proc/cviusb/otg_role
+	;;
+  *)
+	echo "Usage: $0 host"
+	echo "Usage: $0 device"
+	exit 1
+esac
+exit $?
+```
+
+- /etc/usb-rndis.sh
+
+```bash
+#!/usr/bin/sh
+
+/etc/uhubon.sh device >> /tmp/rndis.log 2>&1
+/etc/run_usb.sh probe rndis >> /tmp/rndis.log 2>&1
+/etc/run_usb.sh start rndis >> /tmp/rndis.log 2>&1
+
+sleep 0.5
+ip link set dev usb0 up
+ip a add 192.168.42.1/24 dev usb0
+```
+
+随后新增一个systemd service
+
+```bash
+nano /mnt/lichee/etc/systemd/system/rndis.service 
+```
+
+内容   
+
+```
+[Unit]
+Description=RNDIS
+
+[Service]
+User=root
+WorkingDirectory=/etc/
+ExecStart=/etc/usb-rndis.sh
+
+[Install]
+WantedBy=multi-user.target
+```
+
+写入后做链接即可
+
+```bash
+cd /mnt/lichee/etc/systemd/system/multi-user.target.wants/
+ln -s ../rndis.service rndis.service
+```
+
+启动后可以使用rndis配置apt代理到本机，随后使用apt下载离线包，方便以后制作新的镜像   
+
+```bash
+export PKG=network-manager
+apt-get download $PKG && apt-cache depends -i $PKG | awk '/Depends:/ {print $2}' | xargs apt-get download
+```
+
+## 加载ko
+创建文件`/mnt/lichee/etc/lichee.sh` 且`chmod +x`
+
+```bash
+#!/usr/bin/sh
+/mnt/init.d/S00kmod start
+/mnt/init.d/S01fs start
+/mnt/init.d/S25wifimod start
+```
+
+随后创建文件   
+
+```
+sudo vim /mnt/lichee/etc/systemd/system/lichee.service
+```
+
+内容   
+
+```
+[Unit]
+Description=Load LicheeRVNano Init Scripts
+
+[Service]
+Type=oneshot
+ExecStart=/etc/lichee.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+写入后做链接即可
+
+```bash
+cd /mnt/lichee/etc/systemd/system/multi-user.target.wants/
+ln -s ../lichee.service lichee.service
+```
+
+## 音频设备
+
+荔枝派 RV nano 有板载的麦克风，在加载驱动的时候已经准备好mod，使用方式如下
+
+```bash
+apt install alsa-oss alsa-tools alsa-utils # 安装alsa
+arecord -d 5 output.wav # 录制5秒的音频文件
+```
+
+## 参考   
+
+- [Sipeed 荔枝派RV nano 官方文档](https://wiki.sipeed.com/hardware/zh/lichee/RV_Nano/1_intro.html)   
+- [【AXPI】如何在 M1/M2 Mac上使用 Rndis](https://zhuanlan.zhihu.com/p/593627641)   
+- [Milkv Duo 的 Debian 移植笔记](https://www.taterli.com/9532/)   
+- [【Arch Linux On Milkv-duo】Milkv-duo 运行 Arch Linux 系统](https://community.milkv.io/t/arch-linux-on-milkv-duo-milkv-duo-arch-linux/329)
+- [【Debian & Arch Linux On Milkv-duo 256M】Milkv-duo 256M 运行 Debian & Arch Linux 系统 视频教程](https://community.milkv.io/t/debian-arch-linux-on-milkv-duo-256m-milkv-duo-256m-debian-arch-linux/1110)]]></description><link>https://vaala.cat/posts/lichee-rv-nano-memos</link><guid isPermaLink="true">https://vaala.cat/posts/lichee-rv-nano-memos</guid><pubDate>Fri, 31 May 2024 22:50:19 GMT</pubDate></item><item><title><![CDATA[frp-panel开发笔记及使用说明]]></title><description><![CDATA[
 > 项目地址: [https://github.com/VaalaCat/frp-panel](https://github.com/VaalaCat/frp-panel)
 > 本文是使用说明兼开发笔记，想看部署说明的直接跳到最后吧
 
