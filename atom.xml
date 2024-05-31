@@ -1,68 +1,818 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Vaala Cat]]></title><description><![CDATA[Vaala Cat | 鲸喵]]></description><link>https://vaala.cat</link><image><url>https://vaala.cat/images/blog/avatar.png</url><title>Vaala Cat</title><link>https://vaala.cat</link></image><generator>Vaala Cat</generator><lastBuildDate>Fri, 12 Apr 2024 16:10:16 GMT</lastBuildDate><atom:link href="https://vaala.cat/atom.xml" rel="self" type="application/rss+xml"/><language><![CDATA[zh-CN]]></language><item><title><![CDATA[frp-panel开发笔记及使用说明]]></title><description><![CDATA[
-> 项目地址: [https://github.com/VaalaCat/frp-panel](https://github.com/VaalaCat/frp-panel)
-> 本文是使用说明兼开发笔记，想看部署说明的直接跳到最后吧
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Vaala Cat]]></title><description><![CDATA[Vaala Cat | 鲸喵]]></description><link>https://vaala.cat</link><image><url>https://vaala.cat/images/blog/avatar.png</url><title>Vaala Cat</title><link>https://vaala.cat</link></image><generator>Vaala Cat</generator><lastBuildDate>Mon, 28 Oct 2024 11:06:08 GMT</lastBuildDate><atom:link href="https://vaala.cat/atom.xml" rel="self" type="application/rss+xml"/><language><![CDATA[zh-CN]]></language><item><title><![CDATA[一点荔枝派 rv nano 上手记录]]></title><description><![CDATA[<blockquote>
+<p>荔枝派 LicheeRV nano 使用记录</p>
+</blockquote>
+<h2 id="-">一点背景</h2>
+<p>最近一直在想做一个24小时录音设备，联网后音频识别存储文字，AI提问+总结的小玩具。所以要购置一些制作 demo 的设备。上淘宝看了前些日子很火的Milk-V duo，发现没有Wifi，很难受。万能的淘宝仿佛知道我的心声，以切到主页就注意到一块近乎完美的开发板 Lichee Pi RV nano。三核心，两颗大核分别是 1GHz RISC-V C906 和 ARM A53，但只能二选一启动，很神奇的异构设计，小核心是一颗频率略低的 C906，如果用 ARM 大核 + RISCV 小核，与RK的RV1106也非常类似，看来各家都想做这种芯片。接口也是非常丰富，I2C/SPI/USB/GPIO/UART/CSI/DSI 应有尽有，甚至板载了一颗麦克风，这简直是为我的场景量身定做。</p>
+<p>这款开发板有几种规格，区别在于是否包含RJ45网口/WIFI&amp;BT。这里我购买的是WiFi，不含RJ45版。</p>
+<h2 id="-">几张照片</h2>
+<div className="gird gird-cols-1 sm:grid-cols-2">
+  <img src="/images/lichee/licheerv-nano-debian-boot.jpg" />
+  <img src="/images/lichee/licheerv-nano-debian-info.jpg" />
+</div>
 
-## 背景
+<h2 id="-">下点镜像</h2>
+<p>到手我们先用原版镜像启动。</p>
 
-在跳不动干了不少时间了，发现对开源还是有热情的（虽然也只有热情了），社畜是真的🐮🐎。时间是真的不够用，这个项目我从大一开始就想要启动，一直没有找到契机。这次找了个周末把它启动上基本功能写完。   
+<ul>
+<li>在 Github下载镜像：<a href="https://github.com/sipeed/LicheeRV-Nano-Build">https://github.com/sipeed/LicheeRV-Nano-Build</a></li>
+</ul>
+<p>在Mac上，我选择使用BalenaEtcher烧录镜像
+Linux可选dd，Windows可选rufus和BalenaEtcher烧录即可</p>
+<h2 id="-mac">连下Mac</h2>
+<p>荔枝派RV nano 设计使用RNDIS进行通信开发，不幸的是MacOS没有官方内置驱动。需要安装某位开源大善人的驱动：</p>
 
-那么接下来说说这次开发的东西吧。我这次要做的是frp的中心化控制版本。   
+<ul>
+<li><a href="https://github.com/jwise/HoRNDIS/files/7323710/HoRNDIS-M1.zip">https://github.com/jwise/HoRNDIS/files/7323710/HoRNDIS-M1.zip</a>    </li>
+</ul>
+<p>AppleSilicon 需要干掉 kext 保护后才能使用。
+首先关机，然后长按开机键进入恢复模式后打开终端</p>
 
-~~知道的好兄弟可能知道~~，[frp](https://github.com/fatedier/frp)的运行是由「使用者」分别给「客户端」即frpc和「服务端」frps写好配置文件，然后在有公网服务器的地方运行frps，在没有公网服务器的地方运行frpc。而且这种模式运行的很好，frp几乎是社区上好评程度最高的内网穿透工具。   
+<pre><code>csrutil disable
+(请输入你的密码)
+csrutil enable --without kext
+(请输入你的密码)
+</code></pre>
+<p>完成后关闭终端，进入实用工具启用内核扩展宽松限制</p>
+<p>随后重启后在系统设置中“隐私与安全”打开系统拓展，再次重启即可在系统设置的网络中看到你的荔枝派了</p>
+<h2 id="-sdk-buildroot">编译点官方SDK buildroot</h2>
+<p>官方提供的镜像可谓是非常干净，没有包管理器，让我很难做人，所以我们需要帮官方适配一下 Debian 和 Arch Linux</p>
+<p>为了环境的一致性，最好有一个纯净的 Linux 系统。这里我在垃圾箱中翻出来一只 SteamDeck，在里面装了一只 Debian 虚拟机作为操作环境。</p>
+<p>因为官方的镜像实在是过于干净，直接替换 rootfs 完全无法支持 Debian 或 Arch 启动首先需要按以下内容修改SDK对应文件，主要是一些systemd的依赖</p>
 
-那么我为什么要还要写一个这个玩意儿呢？曾经我使用过另一个工具：[nps](https://github.com/ehang-io/nps)，这个工具已经几年没有commit了，但是依旧有不少人还想使用它，尤其是红队的一些哥们。这个叫nps的东西优点在于它有中心化的web管理，用户搭建好服务端过后，客户端只需要一行命令就可以运行起来，各种配置都在服务端进行。   
+<pre><code class="lang-diff">--- a/build/boards/sg200x/sg2002_licheervnano_sd/linux/sg2002_licheervnano_sd_defconfig
++++ b/build/boards/sg200x/sg2002_licheervnano_sd/linux/sg2002_licheervnano_sd_defconfig
+@@ -578,3 +578,23 @@ CONFIG_SPI_SPIDEV=y
+ CONFIG_EPOLL=y
+ CONFIG_IO_URING=y
+ CONFIG_SIGNALFD=y
++
++# for systemd
++CONFIG_CGROUPS=y
++CONFIG_CGROUP_FREEZER=y
++CONFIG_CGROUP_PIDS=y
++CONFIG_CGROUP_DEVICE=y
++CONFIG_CPUSETS=y
++CONFIG_PROC_PID_CPUSET=y
++CONFIG_CGROUP_CPUACCT=y
++CONFIG_PAGE_COUNTER=y
++CONFIG_MEMCG=y
++CONFIG_CGROUP_SCHED=y
++CONFIG_NAMESPACES=y
++CONFIG_OVERLAY_FS=y
++CONFIG_AUTOFS4_FS=y
++CONFIG_SIGNALFD=y
++CONFIG_TIMERFD=y
++CONFIG_EPOLL=y
++CONFIG_IPV6=y
++CONFIG_FANOTIFY
+diff --git a/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py b/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py
+index 4c676f060..467e93a2e 100755
+--- a/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py
++++ b/build/boards/sg200x/sg2002_licheervnano_sd/memmap.py
+@@ -41,6 +41,7 @@ class MemoryMap:
+     # Multimedia buffer. Used by u-boot/kernel/FreeRTOS
+     # =================
+     ION_SIZE = 75 * SIZE_1M
++    # ION_SIZE = 0 * SIZE_1M
+     H26X_BITSTREAM_SIZE = 2 * SIZE_1M
+     H26X_ENC_BUFF_SIZE = 0
+     ISP_MEM_BASE_SIZE = 20 * SIZE_1M
+diff --git a/build/tools/common/sd_tools/genimage.cfg b/build/tools/common/sd_tools/genimage.cfg
+index b97c9e958..6e970200b 100644
+--- a/build/tools/common/sd_tools/genimage.cfg
++++ b/build/tools/common/sd_tools/genimage.cfg
+@@ -13,7 +13,7 @@ image rootfs.ext4 {
+        ext4 {
+                label = &quot;rootfs&quot;
+        }
+-       size = 256M
++       size = 1G
+     mountpoint = &quot;/&quot;
+ }
+</code></pre>
+<p>官方github文档的Readme有点问题，不能按照readme中的命令直接build，需要去github action workflow 中捞所需的文件</p>
 
-而且大厂的一些产品，比如Cloudflare Argo Tunnel / Tailscale Funnel都支持中心化配置，~~那我们也得紧跟友商。~~   
+<pre><code class="lang-bash">git clone https://github.com/sipeed/LicheeRV-Nano-Build --depth=1
+cd LicheeRV-Nano-Build
+wget https://sophon-file.sophon.cn/sophon-prod-s3/drive/23/03/07/16/host-tools.tar.gz
+tar xf host-tools.tar.gz
+</code></pre>
+<p>准备好之后开始编译</p>
 
-我认为这样的操作逻辑明显更符合“内网穿透工具”的使用场景。因为服务端定义上就是外部可访问，客户端就是外部不可访问。当用户都没办法从外部访问客户端，那么要如何远程的修改配置呢？所以我认为客户端的配置是一定要在服务端web页面上做的。   
+<pre><code class="lang-bash">source build/cvisetup.sh
+defconfig sg2002_licheervnano_sd
+build_all
+</code></pre>
+<p>编译完成后会给出目标文件的位置</p>
 
-另外，既然我们要做的是一个平台，那么支持多服务端的管理是必然的。   
+<pre><code>---------------&gt;8------------------
+# please use win32diskimager or dd command write it into sdcard
 
-得出了这样一个结论，那么就得撸起袖子开干了。   
 
-我们的目标就是做一个：   
-- 客户端配置可中心化管理   
-- 多服务端配置管理   
-- 可视化配置界面   
-- 简化运行所需要的配置   
-   
-的更强更完善的frp！   
+/mnt/li/LicheeRV-Nano-Build/install/soc_sg2002_licheervnano_sd/images/2024-05-26-04-29-e4c87a.img
 
-DEMO:
 
-![demo](/images/frp-panel/frp-panel-demo.gif)
+---------------&gt;8------------------
+/mnt/li/LicheeRV-Nano-Build
+</code></pre>
+<p>得到img文件后即可开始移植</p>
+<h2 id="img-">img文件扩容</h2>
+<p>首先准备一个空文件，将内容追加到img文件里，这里我准备扩容500M </p>
 
-## 技术路线   
+<pre><code class="lang-bash">dd if=/dev/zero of=new.img bs=1M count=500
+cat new.img &gt;&gt; origin.img
+</code></pre>
+<p>通过loop设备使用partd操作分区</p>
 
-### 技术栈   
+<pre><code class="lang-bash">sudo losetup -f # 得到空闲loop设备
+sudo losetup -P /dev/loop0 /path/to/origin.img
+sudo parted /dev/loop0
+# resizepart 2 100%
+sudo resize2fs /dev/loop0p2
+sudo losetup -d /dev/loop0
+</code></pre>
+<p>即可，使用fdisk可以查看</p>
+<h2 id="-debian-licheerv-nano">移植个 Debian 到 LicheeRV nano</h2>
+<p>由于目前 Debian 已经将 rv64 视作官方架构支持，我们无需自行制作 ports。在这里下载 RiscV 版本的镜像：   </p>
 
-frp项目本身是使用的Go语言，那么自然我也用Go是最优选择。   
+<ul>
+<li><a href="https://people.debian.org/~gio/dqib/">Debian Quick Image Baker pre-baked images</a>   </li>
+</ul>
+<p>解压后得到这样的目录，我们只需要其中的 <code>image.qcow2</code>。</p>
 
-rpc选择了protobuf+grpc，http框架使用了Gin。   
+<pre><code>├── image.qcow2
+├── initrd
+├── kernel
+├── readme.txt
+├── ssh_user_ecdsa_key
+├── ssh_user_ed25519_key
+└── ssh_user_rsa_key
+</code></pre>
+<p>这是 QEMU 使用的镜像格式，我们需要先安装 qemu 然后挂载为网盘。</p>
 
-前端的话倒用啥写都行，既然要写就要写最新的，所以选了[react](https://react.dev/)/[nextjs](https://nextjs.org/)和[shadcn-ui](https://ui.shadcn.com/)/[tailwindcss](https://tailwindcss.com/)
-   
-### 平台架构设计   
+<pre><code class="lang-bash">sudo apt update
+sudo apt install qemu-utils
+# 开启 NBD
+sudo modprobe nbd max_part=8
+sudo qemu-nbd -c /dev/nbd0 image.qcow2
+sudo mkdir /mnt/debian-rv
+sudo mount /dev/nbd0p2 /mnt/debian-rv
+# 验证是否能读出两个分区
+sudo fdisk -l /dev/nbd0
+</code></pre>
+<p>同时把之前的 loop 设备挂载到这个<code>/mnt/lichee</code>下，开始替换文件：</p>
 
-技术栈选好了，下一步就是要设计程序的架构。在刚刚背景里说的那样，frp本身有frpc和frps（客户端和服务端），这两个角色肯定是必不可少了。然后我们还要新增一个东西去管理它们，所以frp-panel新增了一个master角色。master会负责管理各种frpc和frps，中心化的存储配置文件和连接信息。   
+<pre><code class="lang-bash">sudo mkdir /mnt/lichee
+sudo losetup -f # 找到lo设备名，这里我是/dev/loop0
+sudo losetup -P /dev/loop0 /path/to/xxxx.img
+sudo cp -r /mnt/lichee/mnt /tmp # 保存一些重要文件，包含驱动
+sudo cp -r /mnt/lichee/lib/firmware /tmp
+sudo cp -r /mnt/lichee/etc/init.d /tmp
 
-然后是frpc和frps。原版是需要在两边分别写配置文件的。那么既然原版已经支持了，就不用在走原版的路子，我们直接不支持配置文件，所有的配置都必须从master获取。   
+sudo rm -rf /mnt/lichee/*
+sudo cp -a /mnt/debian-rv/* /mnt/lichee
 
-其次还要考虑到与原版的兼容问题，frp-panel的客户端/服务端都必须要能连上官方frpc/frps服务。这样的话就可以做到配置文件/不要配置文件都能完美工作了。   
-总的说来架构还是很简单的。
+sudo cp -r /tmp/mnt/* /mnt/lichee/mnt
+sudo cp -r /tmp/init.d /mnt/lichee/mnt
+sudo cp -r /tmp/firmware /mnt/lichee/lib
+</code></pre>
+<p>完成后就可以取消挂载刷进 SD 卡尝试启动设备了 （如果需要rndis，请再看看下面的RNDIS一节，再取消挂载）</p>
 
-![arch](/images/frp-panel/arch.png)
+<pre><code class="lang-bash">sudo umount /mnt/lichee
+sudo umount /mnt/debian-rv
+sudo losetup -d /dev/loop0
+sudo qemu-nbd -d /dev/nbd0
+</code></pre>
+<p>进入设备安装 NetworkManager，我们使用 RNDIS 把电脑当作 proxy 连接 apt 源，修改 <code>/etc/apt/apt.conf</code></p>
 
-## 开发   
+<pre><code class="lang-ini">Acquire::http::Proxy &quot;http://192.168.42.xx:xxxx/&quot;;
+Acquire::Languages &quot;none&quot;;
+</code></pre>
+<p>其中 xx 是自己电脑给 RNDIS 接口配置的 IP，电脑上需要挂一个 http proxy server 连接到</p>
 
-项目包含三个角色   
-1. Master: 控制节点，接受来自前端的请求并负责管理Client和Server   
-2. Server: 服务端，受控制节点控制，负责对客户端提供服务，包含frps和rpc(用于连接Master)服务   
-3. Client: 客户端，受控制节点控制，包含frpc和rpc(用于连接Master)服务   
-   
-接下来给出一个项目中各个包的功能   
-```
-.
+<pre><code class="lang-bash"># apt 可能 OOM，创建 swap
+dd if=/dev/zero of=/swap bs=1M count=512
+chmod 0600 /swap
+mkswap /swap
+swapon /swap
+
+apt update
+apt install network-manager
+systemctl enable NetworkManager
+systemctl start NetworkManager
+# 替换 &lt;WIFI_SSID&gt; 和 &lt;PASSWORD&gt; 为 wifi AP 名称和密码
+nmcli device wifi connect &lt;WIFI_SSID&gt; password &lt;PASSWORD&gt;
+</code></pre>
+<p>此时应该可以正常联网使用了，但是我们需要下载依赖来制作镜像，</p>
+
+<pre><code class="lang-bash">export PKG=network-manager
+apt download $PKG &amp;&amp; apt depends -i $PKG | awk &#39;/Depends:/ {print $2}&#39; | xargs apt download
+</code></pre>
+<p>还有一些间接依赖，随便放到一个 pkglist 文件中</p>
+
+<pre><code class="lang-bash">libaudit1
+libbluetooth3
+libc6
+libcurl3t64-gnutls
+libglib2.0-0t64
+libgnutls30t64
+libjansson4
+libmm-glib0
+libndp0
+libnewt0.52
+libnm0
+libpsl5t64
+libreadline8t64
+libselinux1
+libsystemd0
+libteamdctl0
+libudev1
+udev
+adduser
+polkitd
+dbus-session-bus-common
+libbrotli1
+libldap-2.5-0
+libnetfilter-conntrack3
+libnghttp2-14
+libpolkit-agent-1-0
+librtmp1
+libsasl2-modules
+libssh2-1t64
+xml-core
+dbus-user-session
+libduktape207
+libldap-common
+libnfnetlink0
+libpam-systemd
+libpolkit-gobject-1-0
+libsasl2-2
+libsasl2-modules-db
+sgml-base
+</code></pre>
+<p>然后安装</p>
+
+<pre><code>cat pkglist | xargs apt download
+</code></pre>
+<h2 id="-archlinux-licheerv-nano">移植个 ArchLinux 到 LicheeRV nano</h2>
+<p>我们使用这个ArchLinux的 RV64 port</p>
+
+<ul>
+<li><a href="https://archriscv.felixc.at/">https://archriscv.felixc.at/</a>    </li>
+</ul>
+<p>首先下载文件</p>
+
+<pre><code class="lang-bash">wget https://archriscv.felixc.at/images/archriscv-2024-03-30.tar.zst
+</code></pre>
+<p>然后将原始镜像文件通过loop设备挂载到一个目录</p>
+
+<pre><code class="lang-bash">sudo losetup -f # 找到lo设备名，这里我是/dev/loop0
+sudo losetup -P /dev/loop0 /path/to/xxxx.img
+sudo mkdir /mnt/lichee
+sudo mount /dev/loop0p2 /mnt/lichee
+</code></pre>
+<p>将目录中的文件替换为我们下载的内容</p>
+
+<pre><code class="lang-bash">cd /mnt/lichee
+sudo cp -r /mnt/lichee/mnt /tmp # 保存一些重要文件
+sudo cp -r /mnt/lichee/etc/init.d /tmp
+
+sudo rm -rf *
+sudo tar -xvf /path/to/archriscv-2024-03-30.tar.zst -C .
+sudo cp -r /tmp/mnt/* ./mnt
+sudo cp -r /mnt/init.d ./mnt
+</code></pre>
+<p>随后取消挂载 (如果需要RNDIS，请再看看下面的RNDIS一节，再取消挂载)</p>
+
+<pre><code class="lang-bash">sudo umount /mnt/lichee
+sudo losetup -d /dev/loop0
+</code></pre>
+<p>然后就可以将文件写入SD卡启动设备啦</p>
+<p>不过这里 Arch 懒得搞 wifi，后续还是更想用 Debian 一点</p>
+<h2 id="-rndis">设置RNDIS</h2>
+<p>需要写入以下文件到新的系统，记得<code>chmod +x filename</code></p>
+
+<ul>
+<li>/etc/run_usb.sh    </li>
+</ul>
+
+<pre><code class="lang-bash">CLASS=acm
+VID=0x3346
+PID=0x1003
+MSC_PID=0x1008
+RNDIS_PID=0x1009
+UVC_PID=0x100A
+UAC_PID=0x100B
+ADB_VID=0x18D1
+ADB_PID=0x4EE0
+ADB_PID_M1=0x4EE2
+ADB_PID_M2=0x4EE4
+MANUFACTURER=&quot;Cvitek&quot;
+PRODUCT=&quot;USB Com Port&quot;
+PRODUCT_RNDIS=&quot;RNDIS&quot;
+PRODUCT_UVC=&quot;UVC&quot;
+PRODUCT_UAC=&quot;UAC&quot;
+PRODUCT_ADB=&quot;ADB&quot;
+ADBD_PATH=/usr/bin/
+SERIAL=&quot;0123456789&quot;
+MSC_FILE=$3
+CVI_DIR=/tmp/usb
+CVI_GADGET=$CVI_DIR/usb_gadget/cvitek
+CVI_FUNC=$CVI_GADGET/functions
+FUNC_NUM=0
+MAX_EP_NUM=4
+TMP_NUM=0
+INTF_NUM=0
+EP_IN=0
+EP_OUT=0
+
+case &quot;$2&quot; in
+  acm)
+    CLASS=acm
+    ;;
+  msc)
+    CLASS=mass_storage
+    PID=$MSC_PID
+    ;;
+  cvg)
+    CLASS=cvg
+    ;;
+  rndis)
+    CLASS=rndis
+    PID=$RNDIS_PID
+    PRODUCT=$PRODUCT_RNDIS
+    ;;
+  uvc)
+    CLASS=uvc
+    PID=$UVC_PID
+    PRODUCT=$PRODUCT_UVC
+    ;;
+  uac1)
+    CLASS=uac1
+    PID=$UAC_PID
+    PRODUCT=$PRODUCT_UAC
+    ;;
+  adb)
+    CLASS=ffs.adb
+    VID=$ADB_VID
+    PID=$ADB_PID
+    PRODUCT=$PRODUCT_ADB
+    ;;
+  *)
+    if [ &quot;$1&quot; = &quot;probe&quot; ] ; then
+      echo &quot;Usage: $0 probe {acm|msc|cvg|rndis|uvc|uac1|adb}&quot;
+      exit 1
+    fi
+esac
+
+calc_func() {
+  FUNC_NUM=$(ls $CVI_GADGET/functions -l | grep ^d | wc -l)
+  echo &quot;$FUNC_NUM file(s)&quot;
+}
+
+res_check() {
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name &quot;acm*&quot; | wc -l)
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name &quot;mass_storage*&quot; | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name &quot;cvg*&quot; | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name &quot;rndis*&quot; | wc -l)
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name &quot;uvc*&quot; | wc -l)
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name &quot;uac1*&quot; | wc -l)
+  TMP_NUM=$(($TMP_NUM * 2))
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name ffs.adb | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+
+  if [ &quot;$CLASS&quot; = &quot;acm&quot; ] ; then
+    EP_IN=$(($EP_IN+2))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ &quot;$CLASS&quot; = &quot;mass_storage&quot; ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ &quot;$CLASS&quot; = &quot;cvg&quot; ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ &quot;$CLASS&quot; = &quot;rndis&quot; ] ; then
+    EP_IN=$(($EP_IN+2))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ &quot;$CLASS&quot; = &quot;uvc&quot; ] ; then
+    EP_IN=$(($EP_IN+2))
+  fi
+  if [ &quot;$CLASS&quot; = &quot;uac1&quot; ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ &quot;$CLASS&quot; = &quot;ffs.adb&quot; ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  echo &quot;$EP_IN in ep&quot;
+  echo &quot;$EP_OUT out ep&quot;
+  if [ $EP_IN -gt $MAX_EP_NUM ]; then
+    echo &quot;reach maximum resource&quot;
+    exit 1
+  fi
+  if [ $EP_OUT -gt $MAX_EP_NUM ]; then
+    echo &quot;reach maximum resource&quot;
+    exit 1
+  fi
+}
+
+probe() {
+  if [ ! -d $CVI_DIR ]; then
+    mkdir $CVI_DIR
+  fi
+  if [ ! -d $CVI_DIR/usb_gadget ]; then
+    # Enale USB ConfigFS
+    mount none $CVI_DIR -t configfs
+    # Create gadget dev
+    mkdir $CVI_GADGET
+    # Set the VID and PID
+    echo $VID &gt;$CVI_GADGET/idVendor
+    echo $PID &gt;$CVI_GADGET/idProduct
+    # Set the product information string
+    mkdir $CVI_GADGET/strings/0x409
+    echo $MANUFACTURER&gt;$CVI_GADGET/strings/0x409/manufacturer
+    echo $PRODUCT&gt;$CVI_GADGET/strings/0x409/product
+    echo $SERIAL&gt;$CVI_GADGET/strings/0x409/serialnumber
+    # Set the USB configuration
+    mkdir $CVI_GADGET/configs/c.1
+    mkdir $CVI_GADGET/configs/c.1/strings/0x409
+    echo &quot;config1&quot;&gt;$CVI_GADGET/configs/c.1/strings/0x409/configuration
+    # Set the MaxPower of USB descriptor
+    echo 120 &gt;$CVI_GADGET/configs/c.1/MaxPower
+  fi
+  # get current functions number
+  calc_func
+  # assign the class code for composite device
+  if [ ! $FUNC_NUM -eq 0 ]; then
+    echo 0xEF &gt;$CVI_GADGET/bDeviceClass
+    echo 0x02 &gt;$CVI_GADGET/bDeviceSubClass
+    echo 0x01 &gt;$CVI_GADGET/bDeviceProtocol
+  fi
+  # resource check
+  res_check
+  # create the desired function
+  if [ &quot;$CLASS&quot; = &quot;ffs.adb&quot; ] ; then
+    # adb shall be the last function to probe. Override the pid/vid
+    echo $VID &gt;$CVI_GADGET/idVendor
+    echo $PID &gt;$CVI_GADGET/idProduct
+    # choose pid for different function number
+    if [ $INTF_NUM -eq 1 ]; then
+      echo $ADB_PID_M1 &gt;$CVI_GADGET/idProduct
+    fi
+    if [ $INTF_NUM -eq 2 ]; then
+      echo $ADB_PID_M2 &gt;$CVI_GADGET/idProduct
+    fi
+    mkdir $CVI_GADGET/functions/$CLASS
+  else
+    mkdir $CVI_GADGET/functions/$CLASS.usb$FUNC_NUM
+  fi
+  if [ &quot;$CLASS&quot; = &quot;mass_storage&quot; ] ; then
+    echo $MSC_FILE &gt;$CVI_GADGET/functions/$CLASS.usb$FUNC_NUM/lun.0/file
+  fi
+  if [ &quot;$CLASS&quot; = &quot;rndis&quot; ] ; then
+    #OS STRING
+    echo 1 &gt;$CVI_GADGET/os_desc/use
+    echo 0xcd &gt;$CVI_GADGET/os_desc/b_vendor_code
+    echo MSFT100 &gt;$CVI_GADGET/os_desc/qw_sign
+    #COMPATIBLE ID
+    echo RNDIS &gt;$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/compatible_id
+    #MAKE c.1 THE ONE ASSOCIATED WITH OS DESCRIPTORS
+    ln -s $CVI_GADGET/configs/c.1 $CVI_GADGET/os_desc
+    #MAKE &quot;Icons&quot; EXTENDED PROPERTY
+    mkdir $CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Icons
+    echo 2 &gt;$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Icons/type
+    echo &quot;%SystemRoot%\\system32\\shell32.dll,-233&quot; &gt;$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Icons/data
+    #MAKE &quot;Label&quot; EXTENDED PROPERTY
+    mkdir $CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Label
+    echo 1 &gt;$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Label/type
+    echo &quot;XYZ Device&quot; &gt;$CVI_FUNC/rndis.usb$FUNC_NUM/os_desc/interface.rndis/Label/data
+  fi
+
+}
+
+start() {
+  # link this function to the configuration
+  calc_func
+  if [ $FUNC_NUM -eq 0 ]; then
+    echo &quot;Functions Empty!&quot;
+    exit 1
+  fi
+  if [ -d $CVI_GADGET/functions/ffs.adb ]; then
+    FUNC_NUM=$(($FUNC_NUM-1))
+  fi
+  for i in `seq 0 $(($FUNC_NUM-1))`;
+  do
+    find $CVI_GADGET/functions/ -name &quot;*.usb$i&quot; | xargs -I % ln -s % $CVI_GADGET/configs/c.1
+  done
+  if [ -d $CVI_GADGET/functions/ffs.adb ]; then
+    ln -s $CVI_GADGET/functions/ffs.adb $CVI_GADGET/configs/c.1
+    mkdir /dev/usb-ffs/adb -p
+    mount -t functionfs adb /dev/usb-ffs/adb
+    if [ -f $ADBD_PATH/adbd ]; then
+    $ADBD_PATH/adbd &amp;
+    fi
+  else
+    # Start the gadget driver
+    UDC=`ls /sys/class/udc/ | awk &#39;{print $1}&#39;`
+    echo ${UDC} &gt;$CVI_GADGET/UDC
+  fi
+}
+
+stop() {
+  if [ -d $CVI_GADGET/configs/c.1/ffs.adb ]; then
+    pkill adbd
+    rm $CVI_GADGET/configs/c.1/ffs.adb
+  else
+    echo &quot;&quot; &gt;$CVI_GADGET/UDC
+  fi
+  find $CVI_GADGET/configs/ -name &quot;*.usb*&quot; | xargs rm -f
+  rmdir $CVI_GADGET/configs/c.*/strings/0x409/
+  tmp_dirs=$(find $CVI_GADGET/os_desc/c.* -type d)
+  if [ -n tmp_dirs ]; then
+    echo &quot;remove os_desc!&quot;
+    rm -rf $CVI_GADGET/os_desc/c.*/
+    find $CVI_GADGET/functions/ -name Icons | xargs rmdir
+    find $CVI_GADGET/functions/ -name Label | xargs rmdir
+  fi
+  rmdir $CVI_GADGET/configs/c.*/
+  rmdir $CVI_GADGET/functions/*
+  rmdir $CVI_GADGET/strings/0x409/
+  rmdir $CVI_GADGET
+  umount $CVI_DIR
+  rmdir $CVI_DIR
+}
+
+case &quot;$1&quot; in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  probe)
+    probe
+    ;;
+  UDC)
+  UDC=`ls /sys/class/udc/ | awk &#39;{print $1}&#39;`
+  echo ${UDC} &gt;$CVI_GADGET/UDC
+    ;;
+  *)
+    echo &quot;Usage: $0 probe {acm|msc|cvg|uvc|uac1} {file (msc)}&quot;
+    echo &quot;Usage: $0 start&quot;
+    echo &quot;Usage: $0 stop&quot;
+    exit 1
+esac
+exit $?
+</code></pre>
+
+<ul>
+<li>/etc/uhubon.sh    </li>
+</ul>
+
+<pre><code class="lang-bash">GPIO_HUBPORT_EN=449
+GPIO_ROLESEL=450
+GPIO_HUBRST=451
+SYS_GPIO=/sys/class/gpio
+
+hub_on() {
+  echo &quot;turn on usb hub&quot;
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBPORT_EN ]; then
+      echo $GPIO_HUBPORT_EN &gt;/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_ROLESEL ]; then
+      echo $GPIO_ROLESEL &gt;/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBRST ]; then
+      echo $GPIO_HUBRST &gt;/sys/class/gpio/export
+  fi
+
+  echo &quot;out&quot; &gt;/sys/class/gpio/gpio$GPIO_HUBPORT_EN/direction
+  echo &quot;out&quot; &gt;/sys/class/gpio/gpio$GPIO_ROLESEL/direction
+  echo &quot;out&quot; &gt;/sys/class/gpio/gpio$GPIO_HUBRST/direction
+
+  echo 1 &gt;/sys/class/gpio/gpio$GPIO_HUBPORT_EN/value
+  echo 0 &gt;/sys/class/gpio/gpio$GPIO_ROLESEL/value
+  echo 0 &gt;/sys/class/gpio/gpio$GPIO_HUBRST/value
+}
+
+hub_off() {
+  echo &quot;turn off usb hub&quot;
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBPORT_EN ]; then
+      echo $GPIO_HUBPORT_EN &gt;/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_ROLESEL ]; then
+      echo $GPIO_ROLESEL &gt;/sys/class/gpio/export
+  fi
+
+  if [ ! -d $SYS_GPIO/gpio$GPIO_HUBRST ]; then
+      echo $GPIO_HUBRST &gt;/sys/class/gpio/export
+  fi
+
+  echo &quot;out&quot; &gt;/sys/class/gpio/gpio$GPIO_HUBPORT_EN/direction
+  echo &quot;out&quot; &gt;/sys/class/gpio/gpio$GPIO_ROLESEL/direction
+  echo &quot;out&quot; &gt;/sys/class/gpio/gpio$GPIO_HUBRST/direction
+
+  echo 0 &gt;/sys/class/gpio/gpio$GPIO_HUBPORT_EN/value
+  echo 1 &gt;/sys/class/gpio/gpio$GPIO_ROLESEL/value
+  echo 1 &gt;/sys/class/gpio/gpio$GPIO_HUBRST/value
+}
+
+inst_mod() {
+  insmod /mnt/system/ko/configfs.ko
+  insmod /mnt/system/ko/libcomposite.ko
+  insmod /mnt/system/ko/u_serial.ko
+  insmod /mnt/system/ko/usb_f_acm.ko
+  insmod /mnt/system/ko/cvi_usb_f_cvg.ko
+  insmod /mnt/system/ko/usb_f_uvc.ko
+  insmod /mnt/system/ko/usb_f_fs.ko
+  insmod /mnt/system/ko/u_audio.ko
+  insmod /mnt/system/ko/usb_f_uac1.ko
+  insmod /mnt/system/ko/usb_f_serial.ko
+  insmod /mnt/system/ko/usb_f_mass_storage.ko
+  insmod /mnt/system/ko/u_ether.ko
+  insmod /mnt/system/ko/usb_f_ecm.ko
+  insmod /mnt/system/ko/usb_f_eem.ko
+  insmod /mnt/system/ko/usb_f_rndis.ko
+}
+
+case &quot;$1&quot; in
+  host)
+    insmod /mnt/system/ko/dwc2.ko
+    hub_on
+    ;;
+  device)
+    hub_off
+    inst_mod
+    echo device &gt; /proc/cviusb/otg_role
+    ;;
+  *)
+    echo &quot;Usage: $0 host&quot;
+    echo &quot;Usage: $0 device&quot;
+    exit 1
+esac
+exit $?
+</code></pre>
+
+<ul>
+<li>/etc/usb-rndis.sh</li>
+</ul>
+
+<pre><code class="lang-bash">#!/usr/bin/sh
+
+/etc/uhubon.sh device &gt;&gt; /tmp/rndis.log 2&gt;&amp;1
+/etc/run_usb.sh probe rndis &gt;&gt; /tmp/rndis.log 2&gt;&amp;1
+/etc/run_usb.sh start rndis &gt;&gt; /tmp/rndis.log 2&gt;&amp;1
+
+sleep 0.5
+ip link set dev usb0 up
+ip a add 192.168.42.1/24 dev usb0
+</code></pre>
+<p>随后新增一个systemd service</p>
+
+<pre><code class="lang-bash">nano /mnt/lichee/etc/systemd/system/rndis.service
+</code></pre>
+<p>内容   </p>
+
+<pre><code>[Unit]
+Description=RNDIS
+
+[Service]
+User=root
+WorkingDirectory=/etc/
+ExecStart=/etc/usb-rndis.sh
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>写入后做链接即可</p>
+
+<pre><code class="lang-bash">cd /mnt/lichee/etc/systemd/system/multi-user.target.wants/
+ln -s ../rndis.service rndis.service
+</code></pre>
+<p>启动后可以使用rndis配置apt代理到本机，随后使用apt下载离线包，方便以后制作新的镜像   </p>
+
+<pre><code class="lang-bash">export PKG=network-manager
+apt-get download $PKG &amp;&amp; apt-cache depends -i $PKG | awk &#39;/Depends:/ {print $2}&#39; | xargs apt-get download
+</code></pre>
+<h2 id="-ko">加载ko</h2>
+<p>创建文件<code>/mnt/lichee/etc/lichee.sh</code> 且<code>chmod +x</code></p>
+
+<pre><code class="lang-bash">#!/usr/bin/sh
+/mnt/init.d/S00kmod start
+/mnt/init.d/S01fs start
+/mnt/init.d/S25wifimod start
+</code></pre>
+<p>随后创建文件   </p>
+
+<pre><code>sudo vim /mnt/lichee/etc/systemd/system/lichee.service
+</code></pre>
+<p>内容   </p>
+
+<pre><code>[Unit]
+Description=Load LicheeRVNano Init Scripts
+
+[Service]
+Type=oneshot
+ExecStart=/etc/lichee.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>写入后做链接即可</p>
+
+<pre><code class="lang-bash">cd /mnt/lichee/etc/systemd/system/multi-user.target.wants/
+ln -s ../lichee.service lichee.service
+</code></pre>
+<h2 id="-">音频设备</h2>
+<p>荔枝派 RV nano 有板载的麦克风，在加载驱动的时候已经准备好mod，使用方式如下</p>
+
+<pre><code class="lang-bash">apt install alsa-oss alsa-tools alsa-utils # 安装alsa
+arecord -d 5 output.wav # 录制5秒的音频文件
+</code></pre>
+<h2 id="-">参考</h2>
+
+<ul>
+<li><a href="https://wiki.sipeed.com/hardware/zh/lichee/RV_Nano/1_intro.html">Sipeed 荔枝派RV nano 官方文档</a>   </li>
+<li><a href="https://zhuanlan.zhihu.com/p/593627641">【AXPI】如何在 M1/M2 Mac上使用 Rndis</a>   </li>
+<li><a href="https://www.taterli.com/9532/">Milkv Duo 的 Debian 移植笔记</a>   </li>
+<li><a href="https://community.milkv.io/t/arch-linux-on-milkv-duo-milkv-duo-arch-linux/329">【Arch Linux On Milkv-duo】Milkv-duo 运行 Arch Linux 系统</a></li>
+<li><a href="https://community.milkv.io/t/debian-arch-linux-on-milkv-duo-256m-milkv-duo-256m-debian-arch-linux/1110">【Debian &amp; Arch Linux On Milkv-duo 256M】Milkv-duo 256M 运行 Debian &amp; Arch Linux 系统 视频教程</a></li>
+</ul>
+]]></description><link>https://vaala.cat/posts/lichee-rv-nano-memos</link><guid isPermaLink="true">https://vaala.cat/posts/lichee-rv-nano-memos</guid><pubDate>Fri, 31 May 2024 22:50:19 GMT</pubDate></item><item><title><![CDATA[frp-panel开发笔记及使用说明]]></title><description><![CDATA[<blockquote>
+<p>项目地址: <a href="https://github.com/VaalaCat/frp-panel">https://github.com/VaalaCat/frp-panel</a>
+本文是使用说明兼开发笔记，想看部署说明的直接跳到最后吧</p>
+</blockquote>
+<h2 id="-">背景</h2>
+<p>在跳不动干了不少时间了，发现对开源还是有热情的（虽然也只有热情了），社畜是真的🐮🐎。时间是真的不够用，这个项目我从大一开始就想要启动，一直没有找到契机。这次找了个周末把它启动上基本功能写完。   </p>
+<p>那么接下来说说这次开发的东西吧。我这次要做的是frp的中心化控制版本。   </p>
+<p><del>知道的好兄弟可能知道</del>，<a href="https://github.com/fatedier/frp">frp</a>的运行是由「使用者」分别给「客户端」即frpc和「服务端」frps写好配置文件，然后在有公网服务器的地方运行frps，在没有公网服务器的地方运行frpc。而且这种模式运行的很好，frp几乎是社区上好评程度最高的内网穿透工具。   </p>
+<p>那么我为什么要还要写一个这个玩意儿呢？曾经我使用过另一个工具：<a href="https://github.com/ehang-io/nps">nps</a>，这个工具已经几年没有commit了，但是依旧有不少人还想使用它，尤其是红队的一些哥们。这个叫nps的东西优点在于它有中心化的web管理，用户搭建好服务端过后，客户端只需要一行命令就可以运行起来，各种配置都在服务端进行。   </p>
+<p>而且大厂的一些产品，比如Cloudflare Argo Tunnel / Tailscale Funnel都支持中心化配置，<del>那我们也得紧跟友商。</del>   </p>
+<p>我认为这样的操作逻辑明显更符合“内网穿透工具”的使用场景。因为服务端定义上就是外部可访问，客户端就是外部不可访问。当用户都没办法从外部访问客户端，那么要如何远程的修改配置呢？所以我认为客户端的配置是一定要在服务端web页面上做的。   </p>
+<p>另外，既然我们要做的是一个平台，那么支持多服务端的管理是必然的。   </p>
+<p>得出了这样一个结论，那么就得撸起袖子开干了。   </p>
+<p>我们的目标就是做一个：   </p>
+
+<ul>
+<li>客户端配置可中心化管理   </li>
+<li>多服务端配置管理   </li>
+<li>可视化配置界面   </li>
+<li>简化运行所需要的配置   </li>
+</ul>
+<p>的更强更完善的frp！   </p>
+<p>DEMO:</p>
+<p><img src="/images/frp-panel/frp-panel-demo.gif" alt="demo"></p>
+<h2 id="-">技术路线</h2>
+<h3 id="-">技术栈</h3>
+<p>frp项目本身是使用的Go语言，那么自然我也用Go是最优选择。   </p>
+<p>rpc选择了protobuf+grpc，http框架使用了Gin。   </p>
+<p>前端的话倒用啥写都行，既然要写就要写最新的，所以选了<a href="https://react.dev/">react</a>/<a href="https://nextjs.org/">nextjs</a>和<a href="https://ui.shadcn.com/">shadcn-ui</a>/<a href="https://tailwindcss.com/">tailwindcss</a></p>
+<h3 id="-">平台架构设计</h3>
+<p>技术栈选好了，下一步就是要设计程序的架构。在刚刚背景里说的那样，frp本身有frpc和frps（客户端和服务端），这两个角色肯定是必不可少了。然后我们还要新增一个东西去管理它们，所以frp-panel新增了一个master角色。master会负责管理各种frpc和frps，中心化的存储配置文件和连接信息。   </p>
+<p>然后是frpc和frps。原版是需要在两边分别写配置文件的。那么既然原版已经支持了，就不用在走原版的路子，我们直接不支持配置文件，所有的配置都必须从master获取。   </p>
+<p>其次还要考虑到与原版的兼容问题，frp-panel的客户端/服务端都必须要能连上官方frpc/frps服务。这样的话就可以做到配置文件/不要配置文件都能完美工作了。<br>总的说来架构还是很简单的。</p>
+<p><img src="/images/frp-panel/arch.png" alt="arch"></p>
+<h2 id="-">开发</h2>
+<p>项目包含三个角色   </p>
+
+<ol>
+<li>Master: 控制节点，接受来自前端的请求并负责管理Client和Server   </li>
+<li>Server: 服务端，受控制节点控制，负责对客户端提供服务，包含frps和rpc(用于连接Master)服务   </li>
+<li>Client: 客户端，受控制节点控制，包含frpc和rpc(用于连接Master)服务   </li>
+</ol>
+<p>接下来给出一个项目中各个包的功能   </p>
+
+<pre><code>.
 |-- biz                 # 主要业务逻辑
 |   |-- client          # 客户端逻辑（这里指的是frp-panel的客户端）
 |   |-- master          # frp-panel 控制平面，负责处理前端请求，并且使用rpc管理frp-panel的server和client
@@ -102,175 +852,164 @@ rpc选择了protobuf+grpc，http框架使用了Gin。
     |-- store
     |-- styles
     `-- types
+</code></pre>
+<h3 id="-">调试启动方式：</h3>
 
-```
+<ul>
+<li>master: <code>go run cmd/*.go master</code><blockquote>
+<p>client 和 server 的具体参数请复制 master webui 中的内容</p>
+</blockquote>
+</li>
+<li>client: <code>go run cmd/*.go client -i &lt;clientID&gt; -s &lt;clientSecret&gt;</code></li>
+<li>server: <code>go run cmd/*.go server -i &lt;serverID&gt; -s &lt;serverSecret&gt;</code></li>
+</ul>
+<p>项目配置文件会默认读取当前文件夹下的.env文件，项目内置了样例配置文件，可以按照自己的需求进行修改</p>
+<p>详细架构调用图</p>
+<p><img src="/images/frp-panel/callvis.svg" alt="structure"></p>
+<h2 id="-">项目使用说明</h2>
+<p>frp-panel可选docker和直接运行模式部署，直接部署请到release下载文件：<a href="https://github.com/VaalaCat/frp-panel/releases">release</a></p>
+<p>启动过后默认访问地址为 <a href="http://IP:9000">http://IP:9000</a></p>
+<h3 id="docker">docker</h3>
+<p>注意⚠️：client 和 server 的启动指令可能会随着项目更新而改变，虽然在项目迭代时会注意前后兼容，但仍难以完全适配，因此 client 和 server 的启动指令以 master 生成为准</p>
 
-### 调试启动方式：
+<ul>
+<li>master   </li>
+</ul>
 
-- master: `go run cmd/*.go master`
-> client 和 server 的具体参数请复制 master webui 中的内容
-- client: `go run cmd/*.go client -i <clientID> -s <clientSecret>`
-- server: `go run cmd/*.go server -i <serverID> -s <serverSecret>`
+<pre><code class="lang-bash">docker run -d -p 9000:9000 \
+    -p 9001:9001 \
+    -v /opt/frp-panel:/data \
+    -e APP_GLOBAL_SECRET=your_secret \ # Master的secret注意不要泄漏，客户端和服务端的是通过Master生成的
+    -e MASTER_RPC_HOST=0.0.0.0 \
+    vaalacat/frp-panel
+</code></pre>
 
-项目配置文件会默认读取当前文件夹下的.env文件，项目内置了样例配置文件，可以按照自己的需求进行修改
+<ul>
+<li>client   </li>
+</ul>
 
-详细架构调用图
+<pre><code class="lang-bash">docker run -d -p your_port:your_port \
+    vaalacat/frp-panel client -s xxx -i xxx # 在master WebUI复制的参数
+</code></pre>
 
-![structure](/images/frp-panel/callvis.svg)
+<ul>
+<li>server   </li>
+</ul>
 
-## 项目使用说明
-frp-panel可选docker和直接运行模式部署，直接部署请到release下载文件：[release](https://github.com/VaalaCat/frp-panel/releases)
+<pre><code class="lang-bash">docker run -d -p your_port:your_port \
+    -p 服务器开放端口70011:服务器开放端口7001 \
+    -p 服务器开放端口8000-8100:服务器开放端口8000-8100 \
+    vaalacat/frp-panel server -s xxx -i xxx # 在master WebUI复制的参数
+</code></pre>
+<h3 id="-linux-">直接运行(Linux)</h3>
 
-启动过后默认访问地址为 http://IP:9000
+<ul>
+<li>master   </li>
+</ul>
 
-### docker   
+<pre><code>APP_GLOBAL_SECRET=your_secret MASTER_RPC_HOST=0.0.0.0 frp-panel master
+</code></pre>
 
-注意⚠️：client 和 server 的启动指令可能会随着项目更新而改变，虽然在项目迭代时会注意前后兼容，但仍难以完全适配，因此 client 和 server 的启动指令以 master 生成为准
+<ul>
+<li>client   </li>
+</ul>
 
-- master   
-   
-```bash
-docker run -d -p 9000:9000 \
-	-p 9001:9001 \
-	-v /opt/frp-panel:/data \
-	-e APP_GLOBAL_SECRET=your_secret \ # Master的secret注意不要泄漏，客户端和服务端的是通过Master生成的
-	-e MASTER_RPC_HOST=0.0.0.0 \
-	vaalacat/frp-panel
+<pre><code>frp-panel client -s xxx -i xxx # 在master WebUI复制的参数
+</code></pre>
 
-```
-- client   
-   
-```bash
-docker run -d -p your_port:your_port \
-	vaalacat/frp-panel client -s xxx -i xxx # 在master WebUI复制的参数
-```
-- server   
-   
-```bash
-docker run -d -p your_port:your_port \
-	-p 服务器开放端口70011:服务器开放端口7001 \
-	-p 服务器开放端口8000-8100:服务器开放端口8000-8100 \
-	vaalacat/frp-panel server -s xxx -i xxx # 在master WebUI复制的参数
-```
+<ul>
+<li>server</li>
+</ul>
 
-### 直接运行(Linux)
-- master   
-   
-```
-APP_GLOBAL_SECRET=your_secret MASTER_RPC_HOST=0.0.0.0 frp-panel master
-```
-- client   
-   
-```
-frp-panel client -s xxx -i xxx # 在master WebUI复制的参数
-```
-- server
-   
-```
-frp-panel server -s xxx -i xxx # 在master WebUI复制的参数
-```
-### 直接运行(Windows)
-在下载的可执行文件同名文件夹下创建一个 `.env` 文件(注意不要有后缀名)，然后输入以下内容保存后运行对应命令，注意，client和server的对应参数需要在web页面复制
+<pre><code>frp-panel server -s xxx -i xxx # 在master WebUI复制的参数
+</code></pre>
+<h3 id="-windows-">直接运行(Windows)</h3>
+<p>在下载的可执行文件同名文件夹下创建一个 <code>.env</code> 文件(注意不要有后缀名)，然后输入以下内容保存后运行对应命令，注意，client和server的对应参数需要在web页面复制</p>
 
-- master: `frp-panel-amd64.exe master`
-```
-APP_GLOBAL_SECRET=your_secret
+<ul>
+<li>master: <code>frp-panel-amd64.exe master</code>
+<pre><code>APP_GLOBAL_SECRET=your_secret
 MASTER_RPC_HOST=IP
 DB_DSN=data.db
-```
+</code></pre>
+</li>
+</ul>
+<p>client 和 server 要使用在 master WebUI复制的参数</p>
 
-client 和 server 要使用在 master WebUI复制的参数
+<ul>
+<li><p>client: <code>frp-panel-amd64.exe client -s xxx -i xxx</code></p>
+</li>
+<li><p>server: <code>frp-panel-amd64.exe server -s xxx -i xxx</code></p>
+</li>
+</ul>
+<h3 id="-">配置说明</h3>
+<p><a href="https://github.com/VaalaCat/frp-panel/blob/main/conf/settings.go">settings.go</a> 文件
+这里有详细的配置参数解释，需要进一步修改配置请参考该文件</p>
+<h3 id="-">一些图片</h3>
+<p><img src="/images/frp-panel/platform_info.png" alt="">
+<img src="/images/frp-panel/login.png" alt="">
+<img src="/images/frp-panel/register.png" alt="">
+<img src="/images/frp-panel/clients_menu.png" alt="">
+<img src="/images/frp-panel/server_menu.png" alt="">
+<img src="/images/frp-panel/create_client.png" alt="">
+<img src="/images/frp-panel/create_server.png" alt="">
+<img src="/images/frp-panel/edit_client.png" alt="">
+<img src="/images/frp-panel/edit_client_adv.png" alt="">
+<img src="/images/frp-panel/edit_server.png" alt="">
+<img src="/images/frp-panel/edit_server_adv.png" alt=""></p>
+<h2 id="-">最后</h2>
+<p>开发这个项目花了一整个周末，实在是有点烧时间，不过目前还有很多功能，例如多用户管理等还没有完善，后面看项目有没有人用再慢慢搞吧～</p>
+]]></description><link>https://vaala.cat/posts/frp-panel-doc</link><guid isPermaLink="true">https://vaala.cat/posts/frp-panel-doc</guid><pubDate>Sun, 14 Jan 2024 13:57:19 GMT</pubDate></item><item><title><![CDATA[Vorker开发笔记-自建的云函数平台]]></title><description><![CDATA[<p>项目地址：<a href="https://github.com/VaalaCat/vorker">https://github.com/VaalaCat/vorker</a></p>
+<h2 id="-">引言</h2>
+<p>博客看起来有一年没更新啦，加入跳不动公司过后真的跳不动了QwQ。最近琢磨着还是该写点什么免得让大家以为我赛博失踪，这次的项目我给它取名为Voker。其基于Cloudflare公司开源的<a href="https://github.com/cloudflare/workerd">Workerd</a>，这个Workerd就是CF知名产品<a href="https://workers.cloudflare.com/">Cloudflare Worker</a>的引擎。但CF仅开源了引擎，另外的能力如运行编排、KV存储、控制面板、版本控制、日志统计收集、用户权限等功能并没有公开，所以需要自己完善这方面的能力。</p>
+<p>代码和使用说明参考Github：<a href="https://github.com/VaalaCat/vorker">Vorker</a></p>
+<p>这次要做的就是Cloudflare Worker的自托管(Self Hosting)版本，代码执行能力由CF开源workerd组件提供，其余能力自行开发完成</p>
+<blockquote>
+<p>之所以叫Voker，因为做出来的东西相比Worker不完善，所以把W砍一半就变成V了，<del>同时做的时候人快没了，所以少了个r（qqqq</del>以前叫voker，现在拉了一个sems和我一起，人还是在的</p>
+</blockquote>
+<h2 id="-">需求介绍</h2>
+<p>此次的需求是完成一个自托管版本的Worker，主要原因是：</p>
 
-- client: `frp-panel-amd64.exe client -s xxx -i xxx`
+<ol>
+<li>CF的worker域名被墙，虽然可以用自己的域名，但总体来说国内使用体验并不好</li>
+<li>Free Plan有限额，虽然我用不完，但是看着还是不爽，毕竟自己有机器可以不限额的呢</li>
+<li>可定制能力缺失，CF毕竟是CF，个人用户的一些feature还是考虑不太完善，用着有点憋屈，自己写就能很轻松的和Git仓库配合上CI/CD</li>
+<li>我自己开新项目的时候不用写一大堆的环境配置脚本和CICD配置，极大提升了我开发效率和体验，对于一些小项目，无需再配置反向代理、路由规则、运行的节点信息、SSL、独立数据库表等，同时Debug也方便得多，不用在编译、上线等等等</li>
+</ol>
+<h2 id="-">明确目标</h2>
+<p>对于以上需求，需要达到的一些目标如下</p>
 
-- server: `frp-panel-amd64.exe server -s xxx -i xxx`
+<ol>
+<li>需要一个控制面的API，能够轻松控制每套代码的部署情况</li>
+<li>需要在控制面做反向代理，将Workerd的每一个worker映射到对应的域名</li>
+<li>需要一个WebUI，方便随时更新代码（手机等</li>
+<li>需要HA （High Availability）部署，不然一台机器坏了所有代码都寄了</li>
+<li>需要支持外部反向代理，毕竟自己写的肯定没有Traefik Nginx等能力强</li>
+</ol>
+<h2 id="-">架构设计</h2>
+<p>对于以上目标，设计如下架构：</p>
+<p><img src="/images/vorker/vorkerarch.svg" alt=""></p>
+<h2 id="-">实现</h2>
+<h3 id="-">后端</h3>
+<p>前端采用Next.js/React/TailwindCSS/semi.desgin，后端Gin/Golang/Workerd。</p>
+<p>最开始还在思考如何去控制workerd想了很长时间，某一天看到Gitea里操作git是直接cmd.run，我直接就是震惊🤯，所以我也直接开抄😎，所以worker的启动参数是在Vorker里拼起来的。</p>
+<p>Workerd运行配置文件基于<a href="https://capnproto.org/">capnp</a>，这个IDL超级快，因为他的结构完全和内存布局一致。他有一个<a href="https://github.com/capnproto/go-capnp">Go实现</a>，本来打算是用这个库按照<a href="https://github.com/cloudflare/workerd/blob/main/src/workerd/server/workerd.capnp">Workerd的Schema</a>去生成Workerd的配置文件，但是看了一眼发现Workerd的配置并没有固定下来，所以暂时先写个简单的template生成配置文件。</p>
+<p>对于api部分没什么好说的，就是CRUD，要注意一点是Vorker将Workerd的每一个Worker所有信息都存储在数据库中，然后通过数据库里的信息生成配置文件给Workerd使用。这个过程中可能会出现不一致，Vorker设计上是以数据库为唯一可信数据源，对文件只有写入操作，没有读取，因此定时调用接口刷新文件即可。</p>
+<p>Workerd的定义用protobuf，定义如下</p>
 
-### 配置说明
-[settings.go](https://github.com/VaalaCat/frp-panel/blob/main/conf/settings.go) 文件
-这里有详细的配置参数解释，需要进一步修改配置请参考该文件
-
-### 一些图片
-
-![](/images/frp-panel/platform_info.png)
-![](/images/frp-panel/login.png)
-![](/images/frp-panel/register.png)
-![](/images/frp-panel/clients_menu.png)
-![](/images/frp-panel/server_menu.png)
-![](/images/frp-panel/create_client.png)
-![](/images/frp-panel/create_server.png)
-![](/images/frp-panel/edit_client.png)
-![](/images/frp-panel/edit_client_adv.png)
-![](/images/frp-panel/edit_server.png)
-![](/images/frp-panel/edit_server_adv.png)
-
-## 最后
-
-开发这个项目花了一整个周末，实在是有点烧时间，不过目前还有很多功能，例如多用户管理等还没有完善，后面看项目有没有人用再慢慢搞吧～]]></description><link>https://vaala.cat/posts/frp-panel-doc</link><guid isPermaLink="true">https://vaala.cat/posts/frp-panel-doc</guid><pubDate>Sun, 14 Jan 2024 13:57:19 GMT</pubDate></item><item><title><![CDATA[Vorker开发笔记-自建的云函数平台]]></title><description><![CDATA[
-项目地址：https://github.com/VaalaCat/vorker
-
-## 引言
-
-博客看起来有一年没更新啦，加入跳不动公司过后真的跳不动了QwQ。最近琢磨着还是该写点什么免得让大家以为我赛博失踪，这次的项目我给它取名为Voker。其基于Cloudflare公司开源的[Workerd](https://github.com/cloudflare/workerd)，这个Workerd就是CF知名产品[Cloudflare Worker](https://workers.cloudflare.com/)的引擎。但CF仅开源了引擎，另外的能力如运行编排、KV存储、控制面板、版本控制、日志统计收集、用户权限等功能并没有公开，所以需要自己完善这方面的能力。
-
-代码和使用说明参考Github：[Vorker](https://github.com/VaalaCat/vorker)
-
-这次要做的就是Cloudflare Worker的自托管(Self Hosting)版本，代码执行能力由CF开源workerd组件提供，其余能力自行开发完成
-
-> 之所以叫Voker，因为做出来的东西相比Worker不完善，所以把W砍一半就变成V了，~~同时做的时候人快没了，所以少了个r（qqqq~~以前叫voker，现在拉了一个sems和我一起，人还是在的
-
-## 需求介绍
-
-此次的需求是完成一个自托管版本的Worker，主要原因是：
-
-1. CF的worker域名被墙，虽然可以用自己的域名，但总体来说国内使用体验并不好
-2. Free Plan有限额，虽然我用不完，但是看着还是不爽，毕竟自己有机器可以不限额的呢
-3. 可定制能力缺失，CF毕竟是CF，个人用户的一些feature还是考虑不太完善，用着有点憋屈，自己写就能很轻松的和Git仓库配合上CI/CD
-4. 我自己开新项目的时候不用写一大堆的环境配置脚本和CICD配置，极大提升了我开发效率和体验，对于一些小项目，无需再配置反向代理、路由规则、运行的节点信息、SSL、独立数据库表等，同时Debug也方便得多，不用在编译、上线等等等
-
-## 明确目标
-
-对于以上需求，需要达到的一些目标如下
-
-1. 需要一个控制面的API，能够轻松控制每套代码的部署情况
-2. 需要在控制面做反向代理，将Workerd的每一个worker映射到对应的域名
-3. 需要一个WebUI，方便随时更新代码（手机等
-4. 需要HA （High Availability）部署，不然一台机器坏了所有代码都寄了
-5. 需要支持外部反向代理，毕竟自己写的肯定没有Traefik Nginx等能力强
-
-## 架构设计
-
-对于以上目标，设计如下架构：
-
-![](/images/vorker/vorkerarch.svg)
-
-## 实现
-
-### 后端
-
-前端采用Next.js/React/TailwindCSS/semi.desgin，后端Gin/Golang/Workerd。
-
-最开始还在思考如何去控制workerd想了很长时间，某一天看到Gitea里操作git是直接cmd.run，我直接就是震惊🤯，所以我也直接开抄😎，所以worker的启动参数是在Vorker里拼起来的。
-
-Workerd运行配置文件基于[capnp](https://capnproto.org/)，这个IDL超级快，因为他的结构完全和内存布局一致。他有一个[Go实现](https://github.com/capnproto/go-capnp)，本来打算是用这个库按照[Workerd的Schema](https://github.com/cloudflare/workerd/blob/main/src/workerd/server/workerd.capnp)去生成Workerd的配置文件，但是看了一眼发现Workerd的配置并没有固定下来，所以暂时先写个简单的template生成配置文件。
-
-对于api部分没什么好说的，就是CRUD，要注意一点是Vorker将Workerd的每一个Worker所有信息都存储在数据库中，然后通过数据库里的信息生成配置文件给Workerd使用。这个过程中可能会出现不一致，Vorker设计上是以数据库为唯一可信数据源，对文件只有写入操作，没有读取，因此定时调用接口刷新文件即可。
-
-Workerd的定义用protobuf，定义如下
-
-```
-syntax = "proto3";
+<pre><code>syntax = &quot;proto3&quot;;
 package defs;
-option go_package = "../entities";
+option go_package = &quot;../entities&quot;;
 
 message Worker {
     string UID = 1; // Unique id of the worker
-    string ExternalPath = 2; // External path of the worker, default is '/'
-    string HostName = 3; // the workerd runner host name, default is 'localhost'
-    string NodeName = 4; // for future HA feature, default is 'default'
-    int32 Port = 5; // worker's port, platfrom will obtain free port while init worker
-    string Entry = 6; // worker's entry file, default is 'entry.js'
-    bytes Code = 7; // worker's code
-    string Name = 8; // worker's name, also use at worker routing, must be unique, default is UID
+    string ExternalPath = 2; // External path of the worker, default is &#39;/&#39;
+    string HostName = 3; // the workerd runner host name, default is &#39;localhost&#39;
+    string NodeName = 4; // for future HA feature, default is &#39;default&#39;
+    int32 Port = 5; // worker&#39;s port, platfrom will obtain free port while init worker
+    string Entry = 6; // worker&#39;s entry file, default is &#39;entry.js&#39;
+    bytes Code = 7; // worker&#39;s code
+    string Name = 8; // worker&#39;s name, also use at worker routing, must be unique, default is UID
 }
 
 // one WorkerList for one workerd instance
@@ -279,32 +1018,30 @@ message WorkerList {
     repeated Worker Workers = 2;
     string NodeName = 3; // workerd runner host name, for HA
 }
-```
+</code></pre>
+<p>路由部分后续需要支持外部反向代理，在Traefik中注册路由实现更多功能。也需要支持内部反向代理，实现如下</p>
 
-路由部分后续需要支持外部反向代理，在Traefik中注册路由实现更多功能。也需要支持内部反向代理，实现如下
-
-```go
-package proxy
+<pre><code class="lang-go">package proxy
 
 import (
-    "fmt"
-    "net/http/httputil"
-    "net/url"
-    "strings"
-    "voker/entities"
-    "voker/models"
+    &quot;fmt&quot;
+    &quot;net/http/httputil&quot;
+    &quot;net/url&quot;
+    &quot;strings&quot;
+    &quot;voker/entities&quot;
+    &quot;voker/models&quot;
 
-    "github.com/gin-gonic/gin"
-    "github.com/sirupsen/logrus"
+    &quot;github.com/gin-gonic/gin&quot;
+    &quot;github.com/sirupsen/logrus&quot;
 )
 
 func init() {
     proxy := entities.GetProxy()
     workerRecords, err := models.AdminGetAllWorkers()
     if err != nil {
-        logrus.Errorf("failed to get all workers, err: %v", err)
+        logrus.Errorf(&quot;failed to get all workers, err: %v&quot;, err)
     }
-    workerList := &entities.WorkerList{
+    workerList := &amp;entities.WorkerList{
         Workers: models.Trans2Entities(workerRecords),
     }
     proxy.InitProxyMap(workerList)
@@ -312,468 +1049,410 @@ func init() {
 
 func Endpoint(c *gin.Context) {
     host := c.Request.Host
-    name := strings.Split(host, ".")[0]
+    name := strings.Split(host, &quot;.&quot;)[0]
     port := entities.GetProxy().GetProxyPort(name)
     if port == 0 {
-        c.JSON(404, gin.H{"code": 1, "error": "not found"})
+        c.JSON(404, gin.H{&quot;code&quot;: 1, &quot;error&quot;: &quot;not found&quot;})
         return
     }
 
-    remote, err := url.Parse(fmt.Sprintf("http://localhost:%v", port))
+    remote, err := url.Parse(fmt.Sprintf(&quot;http://localhost:%v&quot;, port))
     if err != nil {
         logrus.Panic(err)
     }
 
-    c.Request.URL.Path = c.Copy().Param("name")
+    c.Request.URL.Path = c.Copy().Param(&quot;name&quot;)
     proxy := httputil.NewSingleHostReverseProxy(remote)
     proxy.ServeHTTP(c.Writer, c.Request)
 }
-```
+</code></pre>
+<p>在启动时就将路由数据写到内存里。</p>
+<h3 id="-">前端</h3>
+<p>前端由@sems推荐使用了semidesign，是字节新开源的组件库，不得不说确实好看，还能用设计稿先出一个代码初稿，属于是后端福音。</p>
+<p>搓了四个页面，使用常见的侧边栏+header+内容布局</p>
 
-在启动时就将路由数据写到内存里。
+<ul>
+<li>admin，主要用于worker列表、用户设置等</li>
+<li>register，用户注册</li>
+<li>login，用户登录</li>
+<li>editor，编辑代码、设置worker</li>
+</ul>
+<p>代码编辑器用了vscode同款的monaco，弄上了js的代码补全，写起来感觉还是不错的。</p>
+<h2 id="-">运行</h2>
 
-### 前端
+<ol>
+<li><p>首先要下载Workerd的binary</p>
+</li>
+<li><p>docker</p>
 
-前端由@sems推荐使用了semidesign，是字节新开源的组件库，不得不说确实好看，还能用设计稿先出一个代码初稿，属于是后端福音。
+<pre><code class="lang-bash">docker run -dit --name=vorker \
+    -e DB_PATH=/path/to/workerd/db.sqlite \
+    -e WORKERD_DIR=/path/to/workerd \
+    -e WORKERD_BIN_PATH=/bin/workerd \
+    -e DB_TYPE=sqlite \
+    -e WORKER_LIMIT=10000 \
+    -e WORKER_PORT=8080 \
+    -e API_PORT=8888 \
+    -e LISTEN_ADDR=0.0.0.0 \
+    -e WORKER_DOMAIN_SUFFIX=example.com \ # concat with worker name and scheme
+    -e SCHEME=http \ # external scheme
+    -e ENABLE_REGISTER=false \
+    -e COOKIE_NAME=authorization \
+    -e COOKIE_AGE=21600 \
+    -e COOKIE_DOMAIN=localhost # change it to your domain \
+    -e JWT_SECRET=xxxxxxx \
+    -e JWT_EXPIRETIME=6 \
+    -p 8080:8080 \
+    -p 8888:8888 \
+    -v $PWD/workerd:/path/to/workerd \
+    -v $PWD/workerd-linux-64:/bin/workerd \
+    vaalacat/vorker:latest
+</code></pre>
+</li>
+<li><p>访问<code>http://localhost:8888</code>进入控制台，在header里的Host带上worker的名字即可</p>
+</li>
+</ol>
+<h3 id="-">运行截图</h3>
+<p>管理界面</p>
+<p><img src="/images/vorker/vorkeradmin.png" alt=""></p>
+<p>Worker编辑界面</p>
+<p><img src="/images/vorker/vorkeredit.png" alt=""></p>
+<p>Worker运行界面</p>
+<p><img src="/images/vorker/vorkerexec.png" alt=""></p>
+<h2 id="-">总结</h2>
+<p>忙毕设忙了一阵，在这个项目上并没有投入很多的时间，试用了最新的用于生产的前端技术栈，至今还有HA、Log、Metrics、外部反向代理等未完全完成，但是这东西在未完成的状态就很好用了，看起来未来的Serverless+WASM还会大放异彩。顺便在这段时间还看了<a href="https://github.com/lagonapp/lagon">lagon</a>、<a href="https://github.com/windmill-labs/windmill">Windmill</a>、<a href="https://github.com/labring/laf">laf</a>等serverless function平台，似乎对Serverless有了什么奇妙的感觉😳，希望以后Vorker也能和知名开源产品一样发展下去～～～</p>
+<p>Vorker已经成为了Vaala☁️的API层的重要部分，后续我也会陆续写一些关于如何从裸金属机器构建一个企业级的云平台的文章，例如用或者不用K8S的统一网关、SCM、配置中心、容器调度、ServiceMesh等，尽请期待！</p>
+<h2 id="-">参考</h2>
 
-搓了四个页面，使用常见的侧边栏+header+内容布局
+<ul>
+<li><a href="https://github.com/hisorange/opwork">https://github.com/hisorange/opwork</a></li>
+<li><a href="https://gobyexample.com/writing-files">https://gobyexample.com/writing-files</a></li>
+<li><a href="https://colobu.com/2020/12/27/go-with-os-exec/#%E5%B7%A5%E4%BD%9C%E8%B7%AF%E5%BE%84">https://colobu.com/2020/12/27/go-with-os-exec/#%E5%B7%A5%E4%BD%9C%E8%B7%AF%E5%BE%84</a></li>
+<li><a href="https://ijayer.github.io/post/tech/code/golang/20171010-go-template/#%E9%81%8D%E5%8E%86slice-1">https://ijayer.github.io/post/tech/code/golang/20171010-go-template/#%E9%81%8D%E5%8E%86slice-1</a></li>
+<li><a href="https://github.com/cloudflare/workerd">https://github.com/cloudflare/workerd</a></li>
+<li><a href="https://github.com/gin-gonic/gin/issues/1143">https://github.com/gin-gonic/gin/issues/1143</a></li>
+</ul>
+]]></description><link>https://vaala.cat/posts/Vorker开发笔记-自建的云函数平台</link><guid isPermaLink="true">https://vaala.cat/posts/Vorker开发笔记-自建的云函数平台</guid><pubDate>Sat, 03 Jun 2023 22:58:48 GMT</pubDate></item><item><title><![CDATA[异地多人在线电影院]]></title><description><![CDATA[<h2 id="-">引言</h2>
+<p>最近一段时间和npy异地，经常就会有一些一起看视频的需求，然鹅市面上视频共享的产品要么是因为版权的原因资源不足，要么是因为产品定位没有办法顾及到这种小众市场需求。</p>
+<p>作为一个开发，遇到这种问题当然是决定要自己敲一个出来咯。</p>
+<h2 id="-">演示</h2>
+<p>  演示站点：<a href="https://movie.vaala.cat/">https://movie.vaala.cat/</a> 不保证可用性，需要的同学请自行搭建。
+  测试用视频地址：<a href="https://media.w3.org/2010/05/sintel/trailer.mp4">https://media.w3.org/2010/05/sintel/trailer.mp4</a></p>
+<p> <img src="https://minio.vaala.cloud/vaalacloud/tmp/mac-and-mac.gif" alt="电脑和电脑"></p>
+<p> <img src="https://minio.vaala.cloud/vaalacloud/tmp/mac-and-phone.gif" alt="电脑和手机"></p>
+<h2 id="-">产品调研</h2>
+<p>在准备自己动手之前，首先要分析市面上已有的方案有哪些，需要吸取经验和创意作为自己项目的feature。</p>
+<p>在知乎和v2 reddit 以及油管上调研后发现，异地恋在线视频同步这种需求一般有如下几种解决方案：</p>
 
-* admin，主要用于worker列表、用户设置等
-* register，用户注册
-* login，用户登录
-* editor，编辑代码、设置worker
+<ul>
+<li>打个电话喊321，最简单最直接的方案，不过遇到视频卡顿或者想要暂停和分享精彩镜头就有些麻烦了</li>
+</ul>
 
-代码编辑器用了vscode同款的monaco，弄上了js的代码补全，写起来感觉还是不错的。
+<ul>
+<li>各种<strong>国外产品</strong>，例如<a href="https://sync-tube.de/">syncTube</a>，<a href="https://twoseven.xyz">twoseven</a>等，这类产品能够同步的是Netflix或YouTube上的流媒体，在国内几乎没有受众，对我来说也是毫无用处。</li>
+<li>各种<strong>国内产品</strong>，例如BiliBili一起看，微光等产品，这类产品也大都因为版权和产品定位原因，将视频源限制在站内，有些本地的电影或其它小站找到的资源并不能同步。</li>
+<li>现有<strong>国内开源项目</strong>，各位大佬开发的<a href="https://github.com/Justineo/coplay">Coplay</a>，<a href="https://github.com/LouisYLWang/Sync-Sofa">SyncSofa</a>，前者许久未维护看起来是不可用的状态（作者没异地了似乎就不维护了岂可修），后者是作为浏览器插件运行，难以在手机上实现功能（并且这个作者似乎也是结束异地了岂可修）并且二者平台所限，也只能观看特定平台等内容。</li>
+<li>现有<strong>国外开源项目</strong>，<a href="https://syncplay.pl/">SyncPlay</a> ，产品依托于VLC，也只能在电脑上运行，难以移植到手机上。</li>
+<li>对现有产品的魔改利用，例如有些同学用TeamViewer，腾讯会议，Zoom等视频会议和远程协作产品来实现一起观看，尝试过后发现因为国内网络环境问题，上行带宽不足，很难达到理想的效果。</li>
+<li>额外分一个类：🍎iOS在15中公布了Universal Control和SharePlay，其理念非常符合需求，但现在并不能看出它的游戏，设备也是限定在了苹果生态内，并且也限定了资源源头，也希望库克能把这个产品发扬光大吧。</li>
+</ul>
+<p>所以从已有的产品可以看出，我的需求是：</p>
 
-## 运行
+<ul>
+<li>操作简单，无需登陆注册，点击即用，提高npy的使用体验，产品力强。</li>
+<li>可以直接载入互联网流媒体资源，资源丰富，载入简单，跨平台，速度快体验良好。</li>
+<li>跨平台，无论npy用的是什么设备，不用安装app和插件，可以无感接入，进度条拖到哪就是哪。</li>
+</ul>
+<h2 id="-">技术选型</h2>
+<p>从上面的需求来看，我最开始想到的是做一个直播推流控制服务器，由资源服务器将视频流通过hls或是rtmp协议传送到浏览器直接播放，跨平台，操作简单，技术成熟。但是实际测试后发现这种产品没有高质量CDN和OSS支撑难以达到好的体验，延迟巨大且不可靠，体验非常不好。</p>
+<p>重新思考后我选择使用Web技术栈，做一个PWA，一个链接点开就能用，资源链接粘贴进去就可以开始。并且Web技术栈中有WebRTC和WebSocket这种长链接和数据对等共享技术，非常符合我们的需求。</p>
+<p>基于个人情况，我选择的技术栈为</p>
+<p>前端：</p>
 
-1. 首先要下载Workerd的binary
+<ul>
+<li>使用VideoJS加载第三方视频，API丰富，有事件驱动可以实现远端触发本地函数执行。可以加载mp4和webm以及ogg编码的第三方流媒体。</li>
+<li>使用WebSocket作为前后端业务数据交换协议，长连接稳定可靠，事件驱动，容易实现多人数据同步（但目前看来有数据冲突，后期准备换用CRDT数据结构）。</li>
+<li>使用Vue构建PWA，前后端分离，快速更换服务端降低延迟提升体验。</li>
+<li>Vuetify：Material Design，动画丰富，用户体验好。</li>
+</ul>
+<p>后端：</p>
 
-2. docker
-   
-   ```bash
-   docker run -dit --name=vorker \
-       -e DB_PATH=/path/to/workerd/db.sqlite \
-       -e WORKERD_DIR=/path/to/workerd \
-       -e WORKERD_BIN_PATH=/bin/workerd \
-       -e DB_TYPE=sqlite \
-       -e WORKER_LIMIT=10000 \
-       -e WORKER_PORT=8080 \
-       -e API_PORT=8888 \
-       -e LISTEN_ADDR=0.0.0.0 \
-       -e WORKER_DOMAIN_SUFFIX=example.com \ # concat with worker name and scheme
-       -e SCHEME=http \ # external scheme
-       -e ENABLE_REGISTER=false \
-       -e COOKIE_NAME=authorization \
-       -e COOKIE_AGE=21600 \
-       -e COOKIE_DOMAIN=localhost # change it to your domain \
-       -e JWT_SECRET=xxxxxxx \
-       -e JWT_EXPIRETIME=6 \
-       -p 8080:8080 \
-       -p 8888:8888 \
-       -v $PWD/workerd:/path/to/workerd \
-       -v $PWD/workerd-linux-64:/bin/workerd \
-       vaalacat/vorker:latest
-   ```
+<ul>
+<li>Golang：大道至简。</li>
+<li>Gin/Socketio：现成的，好用。</li>
+</ul>
+<p>可以发现活都用在前端了（毕竟后端是给我自己看，前端是要给npy的，打算做一个无状态服务，轻量，所以就不用数据库了，启动一次用一次。</p>
+<h2 id="-">逻辑设计</h2>
+<p>对npy来说，想的是随时可以暂停，随时可以拖进度条，而且由于网络环境，她网络经常卡，所以要做自动同步和自动重连，用事件驱动的逻辑我们很好就能设计出原型，我们设计以下事件并定义事件的行为：</p>
 
-3. 访问`http://localhost:8888`进入控制台，在header里的Host带上worker的名字即可
+<ul>
+<li><code>getUsers</code>：客户端每次发起该请求，服务器便回复<code>allUsers</code> 事件并附上所有用户。</li>
+<li><code>allUsers</code>：客户端接收到该事件，需要更新本地显示的用户列表。</li>
+<li><code>Null</code>：客户端发起<code>getUsers</code> 请求，如果该房间没有用户，则返回<code>Null</code> ，前端切换到房间创建模式。</li>
+<li><code>time</code>：客户端发起该请求，服务端收到时间后将服务端保存的该客户端时间进度记录，并查找当前房间所有客户端的时间进度，找出最大和最小值，使用<code>sync</code> 事件将两个时间广播到该房间。</li>
+<li><code>sync</code>：客户端收到该事件，需要自行选择更新到最小还是最大时间，并且为了防止网络波动造成的小延迟，只有在差距大于一定值时才选择进行更新，这里我选择只向前更新。</li>
+<li><code>setTime</code>：客户端发送该请求，客户端同时接收该事件，当进度条被拖动，<code>VideoJS</code> 的<code>timeupdate</code> 会超过250毫秒，每当超过1秒就发送该请求到服务端，并附上新的时间，服务端对该请求进行广播，让房间内所有客户端都设定到该时间，</li>
+<li><code>getTime</code>：客户端发送该请求，客户端同时接收该事件，发送时会由服务端进行广播，收到该请求的所有客户端会回复<code>time</code> 事件，触发服务端广播的<code>sync</code>，从而实现房间进度同步。</li>
+</ul>
+<p>看起来略有混乱，我甚至不知道能不能跑起来（最后确实是跑起来了甚至跑的不错。</p>
+<p>不过这只是一个原型，后期打算使用CRDT进行重构。</p>
+<h2 id="-">代码实现</h2>
+<p>这里不对代码做详细介绍，感兴趣的同学可以直接查看仓库，前端就几百行，后端也很短，只有两百多行。</p>
+<h2 id="-">使用帮助</h2>
+<p>大家最关心的也许是这个吧，因为是一个Web项目，所以需要一台服务器，这是肯定的吧，并且资源的来源是第三方流媒体，所以流畅程度并不取决于服务器的带宽，服务器只用来做进度条数据的同步，可以说负载非常的低，10Kb网络都不会有问题，也可以实现毫秒级的同步。为了方便部署，我将项目编译到了Release，需要的同学可以自行下载，（这里可以开开脑洞使用树莓派或者软路由做DDNS或者内网穿透运行起来，如果实在太懒，可以直接使用给出的测试url</p>
+<p>部署方式有两种，一种是使用Docker，另一种是手动部署，建议使用Docker部署</p>
+<h3 id="docker-">Docker预编译镜像</h3>
 
-### 运行截图
+<pre><code class="lang-bash">docker run -d -p 9999:9999 -e PORT=9999 -e ALLOW_ORIGIN=http://localhost:9999 --name=test vaalacat/movie-sync
+</code></pre>
+<p>一共有两个环境变量，<code>PORT</code> 是服务端口，<code>ALLOW_ORIGIN</code> 是浏览器中访问的链接(由于反向代理，可能和端口不一致，如果不理解，那就直接用<code>http://ip:端口</code>)。</p>
+<h3 id="-">手动部署</h3>
+<p>首先我们需要分别下载前端和后端文件，</p>
 
-管理界面
+<ul>
+<li>前端：<a href="https://github.com/VaalaCat/movie-sync">https://github.com/VaalaCat/movie-sync</a></li>
+<li>后端：<a href="https://github.com/VaalaCat/movie-sync-server">https://github.com/VaalaCat/movie-sync-server</a></li>
+</ul>
+<p>下载完成后在服务端创建文件夹，结构为：</p>
 
-![](/images/vorker/vorkeradmin.png)
-
-Worker编辑界面
-
-![](/images/vorker/vorkeredit.png)
-
-Worker运行界面
-
-![](/images/vorker/vorkerexec.png)
-
-## 总结
-
-忙毕设忙了一阵，在这个项目上并没有投入很多的时间，试用了最新的用于生产的前端技术栈，至今还有HA、Log、Metrics、外部反向代理等未完全完成，但是这东西在未完成的状态就很好用了，看起来未来的Serverless+WASM还会大放异彩。顺便在这段时间还看了[lagon](https://github.com/lagonapp/lagon)、[Windmill](https://github.com/windmill-labs/windmill)、[laf](https://github.com/labring/laf)等serverless function平台，似乎对Serverless有了什么奇妙的感觉😳，希望以后Vorker也能和知名开源产品一样发展下去～～～
-
-Vorker已经成为了Vaala☁️的API层的重要部分，后续我也会陆续写一些关于如何从裸金属机器构建一个企业级的云平台的文章，例如用或者不用K8S的统一网关、SCM、配置中心、容器调度、ServiceMesh等，尽请期待！
-
-## 参考
-
-* https://github.com/hisorange/opwork
-* https://gobyexample.com/writing-files
-* https://colobu.com/2020/12/27/go-with-os-exec/#%E5%B7%A5%E4%BD%9C%E8%B7%AF%E5%BE%84
-* https://ijayer.github.io/post/tech/code/golang/20171010-go-template/#%E9%81%8D%E5%8E%86slice-1
-* https://github.com/cloudflare/workerd
-* https://github.com/gin-gonic/gin/issues/1143
-]]></description><link>https://vaala.cat/posts/Vorker开发笔记-自建的云函数平台</link><guid isPermaLink="true">https://vaala.cat/posts/Vorker开发笔记-自建的云函数平台</guid><pubDate>Sat, 03 Jun 2023 22:58:48 GMT</pubDate></item><item><title><![CDATA[异地多人在线电影院]]></title><description><![CDATA[
-## 引言
-
-最近一段时间和npy异地，经常就会有一些一起看视频的需求，然鹅市面上视频共享的产品要么是因为版权的原因资源不足，要么是因为产品定位没有办法顾及到这种小众市场需求。
-
-作为一个开发，遇到这种问题当然是决定要自己敲一个出来咯。
-
-## 演示
-
-  演示站点：[https://movie.vaala.cat/](https://movie.vaala.cat/) 不保证可用性，需要的同学请自行搭建。
-  测试用视频地址：[https://media.w3.org/2010/05/sintel/trailer.mp4](https://media.w3.org/2010/05/sintel/trailer.mp4)
-
- ![电脑和电脑](https://minio.vaala.cloud/vaalacloud/tmp/mac-and-mac.gif)
-
- ![电脑和手机](https://minio.vaala.cloud/vaalacloud/tmp/mac-and-phone.gif)
-
-## 产品调研
-
-在准备自己动手之前，首先要分析市面上已有的方案有哪些，需要吸取经验和创意作为自己项目的feature。
-
-在知乎和v2 reddit 以及油管上调研后发现，异地恋在线视频同步这种需求一般有如下几种解决方案：
-
-* 打个电话喊321，最简单最直接的方案，不过遇到视频卡顿或者想要暂停和分享精彩镜头就有些麻烦了
-
-
-* 各种**国外产品**，例如[syncTube](https://sync-tube.de/)，[twoseven](https://twoseven.xyz)等，这类产品能够同步的是Netflix或YouTube上的流媒体，在国内几乎没有受众，对我来说也是毫无用处。
-* 各种**国内产品**，例如BiliBili一起看，微光等产品，这类产品也大都因为版权和产品定位原因，将视频源限制在站内，有些本地的电影或其它小站找到的资源并不能同步。
-* 现有**国内开源项目**，各位大佬开发的[Coplay](https://github.com/Justineo/coplay)，[SyncSofa](https://github.com/LouisYLWang/Sync-Sofa)，前者许久未维护看起来是不可用的状态（作者没异地了似乎就不维护了岂可修），后者是作为浏览器插件运行，难以在手机上实现功能（并且这个作者似乎也是结束异地了岂可修）并且二者平台所限，也只能观看特定平台等内容。
-* 现有**国外开源项目**，[SyncPlay](https://syncplay.pl/) ，产品依托于VLC，也只能在电脑上运行，难以移植到手机上。
-* 对现有产品的魔改利用，例如有些同学用TeamViewer，腾讯会议，Zoom等视频会议和远程协作产品来实现一起观看，尝试过后发现因为国内网络环境问题，上行带宽不足，很难达到理想的效果。
-* 额外分一个类：🍎iOS在15中公布了Universal Control和SharePlay，其理念非常符合需求，但现在并不能看出它的游戏，设备也是限定在了苹果生态内，并且也限定了资源源头，也希望库克能把这个产品发扬光大吧。
-
-所以从已有的产品可以看出，我的需求是：
-
-* 操作简单，无需登陆注册，点击即用，提高npy的使用体验，产品力强。
-* 可以直接载入互联网流媒体资源，资源丰富，载入简单，跨平台，速度快体验良好。
-* 跨平台，无论npy用的是什么设备，不用安装app和插件，可以无感接入，进度条拖到哪就是哪。
-
-## 技术选型
-
-从上面的需求来看，我最开始想到的是做一个直播推流控制服务器，由资源服务器将视频流通过hls或是rtmp协议传送到浏览器直接播放，跨平台，操作简单，技术成熟。但是实际测试后发现这种产品没有高质量CDN和OSS支撑难以达到好的体验，延迟巨大且不可靠，体验非常不好。
-
-重新思考后我选择使用Web技术栈，做一个PWA，一个链接点开就能用，资源链接粘贴进去就可以开始。并且Web技术栈中有WebRTC和WebSocket这种长链接和数据对等共享技术，非常符合我们的需求。
-
-基于个人情况，我选择的技术栈为
-
-前端：
-
-* 使用VideoJS加载第三方视频，API丰富，有事件驱动可以实现远端触发本地函数执行。可以加载mp4和webm以及ogg编码的第三方流媒体。
-* 使用WebSocket作为前后端业务数据交换协议，长连接稳定可靠，事件驱动，容易实现多人数据同步（但目前看来有数据冲突，后期准备换用CRDT数据结构）。
-* 使用Vue构建PWA，前后端分离，快速更换服务端降低延迟提升体验。
-* Vuetify：Material Design，动画丰富，用户体验好。
-
-后端：
-
-* Golang：大道至简。
-* Gin/Socketio：现成的，好用。
-
-可以发现活都用在前端了（毕竟后端是给我自己看，前端是要给npy的，打算做一个无状态服务，轻量，所以就不用数据库了，启动一次用一次。
-
-## 逻辑设计
-
-对npy来说，想的是随时可以暂停，随时可以拖进度条，而且由于网络环境，她网络经常卡，所以要做自动同步和自动重连，用事件驱动的逻辑我们很好就能设计出原型，我们设计以下事件并定义事件的行为：
-
-* `getUsers`：客户端每次发起该请求，服务器便回复`allUsers` 事件并附上所有用户。
-* `allUsers`：客户端接收到该事件，需要更新本地显示的用户列表。
-* `Null`：客户端发起`getUsers` 请求，如果该房间没有用户，则返回`Null` ，前端切换到房间创建模式。
-* `time`：客户端发起该请求，服务端收到时间后将服务端保存的该客户端时间进度记录，并查找当前房间所有客户端的时间进度，找出最大和最小值，使用`sync` 事件将两个时间广播到该房间。
-* `sync`：客户端收到该事件，需要自行选择更新到最小还是最大时间，并且为了防止网络波动造成的小延迟，只有在差距大于一定值时才选择进行更新，这里我选择只向前更新。
-* `setTime`：客户端发送该请求，客户端同时接收该事件，当进度条被拖动，`VideoJS` 的`timeupdate` 会超过250毫秒，每当超过1秒就发送该请求到服务端，并附上新的时间，服务端对该请求进行广播，让房间内所有客户端都设定到该时间，
-* `getTime`：客户端发送该请求，客户端同时接收该事件，发送时会由服务端进行广播，收到该请求的所有客户端会回复`time` 事件，触发服务端广播的`sync`，从而实现房间进度同步。
-
-看起来略有混乱，我甚至不知道能不能跑起来（最后确实是跑起来了甚至跑的不错。
-
-不过这只是一个原型，后期打算使用CRDT进行重构。
-
-## 代码实现
-
-这里不对代码做详细介绍，感兴趣的同学可以直接查看仓库，前端就几百行，后端也很短，只有两百多行。
-
-## 使用帮助
-
-大家最关心的也许是这个吧，因为是一个Web项目，所以需要一台服务器，这是肯定的吧，并且资源的来源是第三方流媒体，所以流畅程度并不取决于服务器的带宽，服务器只用来做进度条数据的同步，可以说负载非常的低，10Kb网络都不会有问题，也可以实现毫秒级的同步。为了方便部署，我将项目编译到了Release，需要的同学可以自行下载，（这里可以开开脑洞使用树莓派或者软路由做DDNS或者内网穿透运行起来，如果实在太懒，可以直接使用给出的测试url
-
-部署方式有两种，一种是使用Docker，另一种是手动部署，建议使用Docker部署
-
-### Docker预编译镜像
-
-```bash
-docker run -d -p 9999:9999 -e PORT=9999 -e ALLOW_ORIGIN=http://localhost:9999 --name=test vaalacat/movie-sync
-```
-
-一共有两个环境变量，`PORT` 是服务端口，`ALLOW_ORIGIN` 是浏览器中访问的链接(由于反向代理，可能和端口不一致，如果不理解，那就直接用`http://ip:端口`)。
-
-### 手动部署
-
-首先我们需要分别下载前端和后端文件，
-
-* 前端：[https://github.com/VaalaCat/movie-sync](https://github.com/VaalaCat/movie-sync)
-* 后端：[https://github.com/VaalaCat/movie-sync-server](https://github.com/VaalaCat/movie-sync-server)
-
-下载完成后在服务端创建文件夹，结构为：
-
-```
-ProjectDir
+<pre><code>ProjectDir
 ├── asset # 下载好的前端文件放在这里吗
-│   ├── css
-│   ├── favicon.ico
-│   ├── fonts
-│   ├── index.html
-│   └── js
+│   ├── css
+│   ├── favicon.ico
+│   ├── fonts
+│   ├── index.html
+│   └── js
 └── movie-sync-server # 后端文件放在这里
     ├── .env # 该文件需要手动创建
     └── movie-sync-server
-```
+</code></pre>
+<p>然后我们编辑后端文件夹中的<code>.env</code> 文件，内容为：</p>
 
-然后我们编辑后端文件夹中的`.env` 文件，内容为：
-
-```
-PORT=8000
+<pre><code>PORT=8000
 ALLOW_ORIGIN=http://localhost:8000
-```
+</code></pre>
+<p>这里的端口就是程序将监听的端口，后面的<code>ALLOW_ORIGIN</code>要改为<strong>客户端浏览器中访问时显示的地址</strong>，不用添加后面的路径，因为有些时候会经过Nginx之类的反向代理，所以链接可能会变成其他样子。修改完成后保存文件，然后就可以直接运行了，切换到后端文件夹：</p>
 
-这里的端口就是程序将监听的端口，后面的`ALLOW_ORIGIN`要改为**客户端浏览器中访问时显示的地址**，不用添加后面的路径，因为有些时候会经过Nginx之类的反向代理，所以链接可能会变成其他样子。修改完成后保存文件，然后就可以直接运行了，切换到后端文件夹：
+<pre><code class="lang-bash">cd ProjectDir/movie-sync-server
+chmod +x movie-sync-server &amp;&amp; ./movie-sync-server
+</code></pre>
+<p>如果你看到了这样的东西，说明已经成功运行</p>
 
-```bash
-cd ProjectDir/movie-sync-server
-chmod +x movie-sync-server && ./movie-sync-server
-```
-
-如果你看到了这样的东西，说明已经成功运行
-
-```
-[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+<pre><code>[GIN-debug] [WARNING] Running in &quot;debug&quot; mode. Switch to &quot;release&quot; mode in production.
  - using env:   export GIN_MODE=release
  - using code:  gin.SetMode(gin.ReleaseMode)
 
-[GIN-debug] GET    /socket.io/*any           --> github.com/gin-gonic/gin.WrapH.func1 (2 handlers)
-[GIN-debug] POST   /socket.io/*any           --> github.com/gin-gonic/gin.WrapH.func1 (2 handlers)
-[GIN-debug] GET    /                         --> main.main.func12 (2 handlers)
-[GIN-debug] GET    /movie                    --> github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
-[GIN-debug] HEAD   /movie                    --> github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
-[GIN-debug] GET    /movie/login              --> github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
-[GIN-debug] HEAD   /movie/login              --> github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
-[GIN-debug] GET    /movie/css/*filepath      --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
-[GIN-debug] HEAD   /movie/css/*filepath      --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
-[GIN-debug] GET    /movie/js/*filepath       --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
-[GIN-debug] HEAD   /movie/js/*filepath       --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
-[GIN-debug] GET    /movie/room/*any          --> main.main.func13 (2 handlers)
+[GIN-debug] GET    /socket.io/*any           --&gt; github.com/gin-gonic/gin.WrapH.func1 (2 handlers)
+[GIN-debug] POST   /socket.io/*any           --&gt; github.com/gin-gonic/gin.WrapH.func1 (2 handlers)
+[GIN-debug] GET    /                         --&gt; main.main.func12 (2 handlers)
+[GIN-debug] GET    /movie                    --&gt; github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
+[GIN-debug] HEAD   /movie                    --&gt; github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
+[GIN-debug] GET    /movie/login              --&gt; github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
+[GIN-debug] HEAD   /movie/login              --&gt; github.com/gin-gonic/gin.(*RouterGroup).StaticFile.func1 (2 handlers)
+[GIN-debug] GET    /movie/css/*filepath      --&gt; github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
+[GIN-debug] HEAD   /movie/css/*filepath      --&gt; github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
+[GIN-debug] GET    /movie/js/*filepath       --&gt; github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
+[GIN-debug] HEAD   /movie/js/*filepath       --&gt; github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (2 handlers)
+[GIN-debug] GET    /movie/room/*any          --&gt; main.main.func13 (2 handlers)
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8000
-```
+</code></pre>
+<p>现在访问链接<code>http://localhost:8000</code> 即可开始使用</p>
+]]></description><link>https://vaala.cat/posts/异地多人在线电影院</link><guid isPermaLink="true">https://vaala.cat/posts/异地多人在线电影院</guid><pubDate>Sun, 17 Apr 2022 17:30:52 GMT</pubDate></item><item><title><![CDATA[在Alfred中丝滑的搜索群晖NAS中的文件]]></title><description><![CDATA[<h2 id="-">引言</h2>
+<p>首先给出仓库地址</p>
 
-现在访问链接`http://localhost:8000` 即可开始使用]]></description><link>https://vaala.cat/posts/异地多人在线电影院</link><guid isPermaLink="true">https://vaala.cat/posts/异地多人在线电影院</guid><pubDate>Sun, 17 Apr 2022 17:30:52 GMT</pubDate></item><item><title><![CDATA[在Alfred中丝滑的搜索群晖NAS中的文件]]></title><description><![CDATA[
-## 引言
+<ul>
+<li><a href="https://github.com/VaalaCat/synology-alfred">synology-alfred</a></li>
+</ul>
+<p>在使用了一段时间的 MacOS Spotlight 搜索过后被其丝滑的体验俘获，并且作为一个多年的群晖 Synology NAS 用户，其内置的 Universal Search 功能更是及其强大，这个功能使用 ElasticSearch 提供搜索服务，使用 Apache Tika 进行数据提取，可以对 NAS 中的所有文件内容<strong>注意是内容</strong>进行检索，功能是非常的强大。</p>
+<p>所以我萌生了将 Universal Search 搬到电脑上的想法，经过调研发现非常的困难<del>其实是我太菜</del>，将这么重型的服务运行在笔记本电脑上常驻是不现实的，经过一番查找发现了很多资料，最后决定使用 Alfred 与 NAS 进行交互从而快速检索文件。</p>
+<h2 id="-">主要流程</h2>
+<p>由于以前没有接触过 Workflow 开发，所以这次是跟着官方的 Example 走了一遍，结果发现官方的 workflow-python 竟然不支持 Python3（官方文档说马上就要开发新版本 Workflow），并且我找到的 Synology API 只支持 Python3 ，看起来是我和 Python 五行不合 😇😇😇</p>
+<p>在一番谷歌后找到了第三方开发者维护的支持 Python3 的版本，成功的跑起来了～～</p>
+<h3 id="-api">全局搜索API</h3>
+<p>找到的 API 中并没有实现全局搜索的 API，开始以为是 FileStation 中的搜索🔍，尝试了一番发现没有作用😃。</p>
+<p>作为一个开源的共产主义者，在原始仓库中实现了认证流程，那我们直接糊一个就行，首先我们进行一个包的抓，看看搜索时调用的到底是哪个API</p>
+<p> <img src="https://img.vaala.cloud/images/2022/01/29/sourcebb830e8d0bc52e37.jpg" alt=""></p>
+<p>发现 API 名称是 <code>SYNO.Finder.FileIndexing.Search</code>然后抄一个登陆流程</p>
 
-首先给出仓库地址
+<pre><code class="lang-python">def __init__(self, ip_address, port, username, password, secure=False, cert_verify=False, dsm_version=7, debug=True, otp_code=None):
+    self.session = auth.Authentication(ip_address, port, username, password, secure, cert_verify, dsm_version, debug, otp_code)
+    self.session.login(&#39;Finder&#39;)
+    self.session.get_api_list(&#39;Finder&#39;)
+    self.request_data = self.session.request_data
+    self.finder_list = self.session.app_api_list
+    self._sid = self.session.sid
+    self.base_url = self.session.base_url
+    if debug is True:
+        print(&#39;You are now logged in!&#39;)
+</code></pre>
+<p>可以在 <code>finder_list</code> 中看到所有的 API，可以发现对我们有用的就一个 <code>SYNO.Finder.FileIndexing.Search</code> ，然后把前面抓到的包进行一个抄</p>
 
-* [synology-alfred](https://github.com/VaalaCat/synology-alfred)
+<pre><code class="lang-javascript">def search(self, keyword):
+    api_name = &#39;SYNO.Finder.FileIndexing.Search&#39;
+    info=self.finder_list[api_name]
+    api_path = info[&#39;path&#39;]
 
-在使用了一段时间的 MacOS Spotlight 搜索过后被其丝滑的体验俘获，并且作为一个多年的群晖 Synology NAS 用户，其内置的 Universal Search 功能更是及其强大，这个功能使用 ElasticSearch 提供搜索服务，使用 Apache Tika 进行数据提取，可以对 NAS 中的所有文件内容**注意是内容**进行检索，功能是非常的强大。
+    req_param={
+        &quot;query_serial&quot;:1,
+        &quot;indice&quot;:&#39;[]&#39;,
+        &quot;keyword&quot;:keyword,
+        &quot;orig_keyword&quot;:keyword,
+        &quot;criteria_list&quot;:&#39;[]&#39;,
+        &quot;from&quot;:0,
+        &quot;size&quot;:10,
+        &quot;fields&quot;:&#39;[&quot;SYNOMDAcquisitionMake&quot;,&quot;SYNOMDAcquisitionModel&quot;,&quot;SYNOMDAlbum&quot;,&quot;SYNOMDAperture&quot;,&quot;SYNOMDAudioBitRate&quot;,&quot;SYNOMDAudioTrackNumber&quot;,&quot;SYNOMDAuthors&quot;,&quot;SYNOMDCodecs&quot;,&quot;SYNOMDContentCreationDate&quot;,&quot;SYNOMDContentModificationDate&quot;,&quot;SYNOMDCreator&quot;,&quot;SYNOMDDurationSecond&quot;,&quot;SYNOMDExposureTimeString&quot;,&quot;SYNOMDExtension&quot;,&quot;SYNOMDFSCreationDate&quot;,&quot;SYNOMDFSName&quot;,&quot;SYNOMDFSSize&quot;,&quot;SYNOMDISOSpeed&quot;,&quot;SYNOMDLastUsedDate&quot;,&quot;SYNOMDMediaTypes&quot;,&quot;SYNOMDMusicalGenre&quot;,&quot;SYNOMDOwnerUserID&quot;,&quot;SYNOMDOwnerUserName&quot;,&quot;SYNOMDRecordingYear&quot;,&quot;SYNOMDResolutionHeightDPI&quot;,&quot;SYNOMDResolutionWidthDPI&quot;,&quot;SYNOMDTitle&quot;,&quot;SYNOMDVideoBitRate&quot;,&quot;SYNOMDIsEncrypted&quot;]&#39;,
+        &quot;file_type&quot;:&quot;&quot;,
+        &quot;search_weight_list&quot;:&#39;[{&quot;field&quot;:&quot;SYNOMDWildcard&quot;,&quot;weight&quot;:1},{&quot;field&quot;:&quot;SYNOMDTextContent&quot;,&quot;weight&quot;:1},{&quot;field&quot;:&quot;SYNOMDSearchFileName&quot;,&quot;weight&quot;:8.5,&quot;trailing_wildcard&quot;:&quot;true&quot;}]&#39;,
+        &quot;sorter_field&quot;:&quot;relevance&quot;,
+        &quot;sorter_direction&quot;:&quot;asc&quot;,
+        &quot;sorter_use_nature_sort&quot;:&quot;false&quot;,
+        &quot;sorter_show_directory_first&quot;:&quot;true&quot;,
+        &quot;api&quot;:&quot;SYNO.Finder.FileIndexing.Search&quot;,
+        &quot;method&quot;:&quot;search&quot;,
+        &quot;version&quot;:1
+    }
 
-所以我萌生了将 Universal Search 搬到电脑上的想法，经过调研发现非常的困难~~其实是我太菜~~，将这么重型的服务运行在笔记本电脑上常驻是不现实的，经过一番查找发现了很多资料，最后决定使用 Alfred 与 NAS 进行交互从而快速检索文件。
+    return self.request_data(api_name, api_path, req_param)
+</code></pre>
+<p>这样我们的搜索功能就是完成了，接下来就是把输出丢到 Alfred 中。</p>
+<h3 id="workflow-">Workflow下拉菜单</h3>
+<p>但似乎这位开发者维护的包 <code>workflow.add_item</code> 不起作用？那就换个方法，虽然在 add 后并没有出现新的内容，但 Alfred 会接受符合规范的 xml 或 json 格式的输出作为下拉菜单的选项。</p>
 
-## 主要流程
+<pre><code class="lang-python">for item in res:
+        t=&quot;&quot;
+        if item[&#39;SYNOMDIsDir&#39;] != &#39;y&#39;:
+            t=&quot;/&quot;+item[&quot;SYNOMDFSName&quot;]
+        result = {
+            &quot;title&quot;: item[&quot;SYNOMDFSName&quot;],
+            &quot;subtitle&quot;: item[&quot;SYNOMDSharePath&quot;],
+            &quot;arg&quot;: item[&quot;SYNOMDSharePath&quot;].replace(t,&quot;&quot;),
+            &quot;autocomplete&quot;: &quot;&quot;,
+            &quot;icon&quot;: {
+                &quot;path&quot;: &quot;./icon.png&quot;
+            }
+        }
+        dat.append(result)
+    response = json.dumps({
+        &quot;items&quot;: dat
+    })
+    sys.stdout.write(response)
+</code></pre>
+<p>这样就可以将标准输出作为下拉菜单了，最后看看效果</p>
+<p> <img src="https://img.vaala.cloud/images/2022/01/29/source6694c0fb5b17946b.jpg" alt=""></p>
+<p>可以看到3，4，5文件名并没有出现信息论，但已经匹配到文件内容了，然后最终想实现的效果是按下回车打开对应文件，不过这里不太清楚该使用 webAPI 下载文件实现还是直接在挂载到本地的网络磁盘中打开，就暂时使用回车复制 NAS 中的文件路径，顺便打开 FileStation，直接粘贴路径就能访问到文件了，为了防止误下载，如果搜索到的路径是一个文件的话，还要删除掉最后的文件名，以免 FileStation 访问出错</p>
+<h2 id="-">参考</h2>
 
-由于以前没有接触过 Workflow 开发，所以这次是跟着官方的 Example 走了一遍，结果发现官方的 workflow-python 竟然不支持 Python3（官方文档说马上就要开发新版本 Workflow），并且我找到的 Synology API 只支持 Python3 ，看起来是我和 Python 五行不合 😇😇😇
+<ul>
+<li><a href="https://github.com/N4S4/synology-api">synology-api</a></li>
+<li><a href="https://github.com/NorthIsUp/alfred-workflow-py3">alfred-workflow-py3</a></li>
+<li><a href="https://www.kaper.com/software/synology-universal-search-cli/">Synology Universal Search CLI</a></li>
+<li><a href="https://stackoverflow.com/questions/62696185/python-download-file-from-synology-filestation-api">python download file from Synology FileStation API</a></li>
+</ul>
+]]></description><link>https://vaala.cat/posts/在Alfred中丝滑的搜索群晖NAS中的文件</link><guid isPermaLink="true">https://vaala.cat/posts/在Alfred中丝滑的搜索群晖NAS中的文件</guid><pubDate>Sat, 29 Jan 2022 17:56:49 GMT</pubDate></item><item><title><![CDATA[修复 MacOS TimeMachine 的同步错误]]></title><description><![CDATA[<h2 id="-">引言</h2>
+<p>作为一个新的白🍎用户，对于 TimeMachine 属于又爱又恨，其官方指定的备份目标 AirPort Time Capsule 实在是过于高贵，所以我选择使用一个提供 AFP 服务的 NAS 作为备份目标磁盘 （SMB 协议据说会出现神秘掉盘问题）</p>
+<p>在内网中快乐的使用几天后出了趟门，想着使用 Wireguard 连回内网路由段接着备份。理想非常的丰满，实践却出了问题，在某一次备份时意外断了网，回到内网中报了如下错误</p>
 
-在一番谷歌后找到了第三方开发者维护的支持 Python3 的版本，成功的跑起来了～～
+<pre><code>无法访问备份磁盘映像“Vaala的MacBook Pro.sparsebundle”（错误35）。
+</code></pre>
+<p>在 Apple 论坛和互联网中找到的都是让我清除备份重来，就像下面这样</p>
+<blockquote>
+<p><a href="https://discussionschinese.apple.com/thread/86190">https://discussionschinese.apple.com/thread/86190</a></p>
+</blockquote>
+<p>但备份不久是为了防止出错？再来清理出错的备份也太本末倒置了，分析问题发生的情况后我选择降低备份频率，使用 TimeMachineEditor 阻止日间备份，并且备份只能在 Mac 不活跃时进行。不出意外，再次苟活几天后又出现了相同错误，原因竟然是 MacOS 在休眠时会自动断开网络连接导致备份失败😅😅😅😅，在经过两次清空备份后，抽了一点时间查找相关资料，得到了最终的解决方案</p>
+<h2 id="-">步骤</h2>
 
-### 全局搜索API
+<ol>
+<li><p>首先关闭掉 TimeMachine 中的自动备份，其它与 TimeMachine 相关的程序例如 TimeMachineEditor 也尽量终止，在终止后尽量重启一次保证没有进程占用相关资源。 </p>
+</li>
+<li><p>找到备份磁盘中的 <code>sparsebundle</code> 文件，将下面命令的路径替换掉。</p>
+</li>
+</ol>
 
-找到的 API 中并没有实现全局搜索的 API，开始以为是 FileStation 中的搜索🔍，尝试了一番发现没有作用😃。
+<pre><code class="lang-bash">hdiutil attach -nomount /path/to/sparsebundleFile
+</code></pre>
 
-作为一个开源的共产主义者，在原始仓库中实现了认证流程，那我们直接糊一个就行，首先我们进行一个包的抓，看看搜索时调用的到底是哪个API
+<ol>
+<li>得到备份磁盘名称，会有很多个磁盘，找到格式为 <code>/dev/diskNs2</code> 的磁盘，<code>N</code> 为数字，<code>s2</code> 为第二分区，备注为 <code>Apple_APFS</code>，我这里是 <code>/dev/disk4s2</code>，接下来对该分区的备份进行检查。</li>
+</ol>
 
- ![](https://img.vaala.cloud/images/2022/01/29/sourcebb830e8d0bc52e37.jpg
-)
+<pre><code class="lang-bash"># 要注意这里的磁盘前面加了一个r代表raw原始不缓存设备
+fsck_hfs -p /dev/rdisk4s2
+</code></pre>
 
-发现 API 名称是 `SYNO.Finder.FileIndexing.Search`然后抄一个登陆流程
+<ol>
+<li>如果命令出现错误，将命令中的 p 参数替换为 f 再试一次，如果错误无法修复，还是考虑格式化重来吧</li>
+</ol>
+<blockquote>
+<p>对于错误我们可以使用 <code>diskutil mount diskNs2</code> 挂载镜像并在 Finder 中检查。</p>
+</blockquote>
 
-```python
-def __init__(self, ip_address, port, username, password, secure=False, cert_verify=False, dsm_version=7, debug=True, otp_code=None):
-	self.session = auth.Authentication(ip_address, port, username, password, secure, cert_verify, dsm_version, debug, otp_code)
-	self.session.login('Finder')
-	self.session.get_api_list('Finder')
-	self.request_data = self.session.request_data
-	self.finder_list = self.session.app_api_list
-	self._sid = self.session.sid
-	self.base_url = self.session.base_url
-	if debug is True:
-		print('You are now logged in!')
-```
+<ol>
+<li>然后我们 detatch 备份区</li>
+</ol>
 
-可以在 `finder_list` 中看到所有的 API，可以发现对我们有用的就一个 `SYNO.Finder.FileIndexing.Search` ，然后把前面抓到的包进行一个抄
-
-```javascript
-def search(self, keyword):
-	api_name = 'SYNO.Finder.FileIndexing.Search'
-	info=self.finder_list[api_name]
-	api_path = info['path']
-
-	req_param={
-		"query_serial":1,
-		"indice":'[]',
-		"keyword":keyword,
-		"orig_keyword":keyword,
-		"criteria_list":'[]',
-		"from":0,
-		"size":10,
-		"fields":'["SYNOMDAcquisitionMake","SYNOMDAcquisitionModel","SYNOMDAlbum","SYNOMDAperture","SYNOMDAudioBitRate","SYNOMDAudioTrackNumber","SYNOMDAuthors","SYNOMDCodecs","SYNOMDContentCreationDate","SYNOMDContentModificationDate","SYNOMDCreator","SYNOMDDurationSecond","SYNOMDExposureTimeString","SYNOMDExtension","SYNOMDFSCreationDate","SYNOMDFSName","SYNOMDFSSize","SYNOMDISOSpeed","SYNOMDLastUsedDate","SYNOMDMediaTypes","SYNOMDMusicalGenre","SYNOMDOwnerUserID","SYNOMDOwnerUserName","SYNOMDRecordingYear","SYNOMDResolutionHeightDPI","SYNOMDResolutionWidthDPI","SYNOMDTitle","SYNOMDVideoBitRate","SYNOMDIsEncrypted"]',
-		"file_type":"",
-		"search_weight_list":'[{"field":"SYNOMDWildcard","weight":1},{"field":"SYNOMDTextContent","weight":1},{"field":"SYNOMDSearchFileName","weight":8.5,"trailing_wildcard":"true"}]',
-		"sorter_field":"relevance",
-		"sorter_direction":"asc",
-		"sorter_use_nature_sort":"false",
-		"sorter_show_directory_first":"true",
-		"api":"SYNO.Finder.FileIndexing.Search",
-		"method":"search",
-		"version":1
-	}
-	
-	return self.request_data(api_name, api_path, req_param)
-```
-
-这样我们的搜索功能就是完成了，接下来就是把输出丢到 Alfred 中。
-
-### Workflow下拉菜单
-
-但似乎这位开发者维护的包 `workflow.add_item` 不起作用？那就换个方法，虽然在 add 后并没有出现新的内容，但 Alfred 会接受符合规范的 xml 或 json 格式的输出作为下拉菜单的选项。
-
-```python
-for item in res:
-		t=""
-		if item['SYNOMDIsDir'] != 'y':
-			t="/"+item["SYNOMDFSName"]
-		result = {
-			"title": item["SYNOMDFSName"],
-			"subtitle": item["SYNOMDSharePath"],
-			"arg": item["SYNOMDSharePath"].replace(t,""),
-			"autocomplete": "",
-			"icon": {
-				"path": "./icon.png"
-			}
-		}
-		dat.append(result)
-	response = json.dumps({
-		"items": dat
-	})
-	sys.stdout.write(response)
-```
-
-这样就可以将标准输出作为下拉菜单了，最后看看效果
-
- ![](https://img.vaala.cloud/images/2022/01/29/source6694c0fb5b17946b.jpg
-)
-
-可以看到3，4，5文件名并没有出现信息论，但已经匹配到文件内容了，然后最终想实现的效果是按下回车打开对应文件，不过这里不太清楚该使用 webAPI 下载文件实现还是直接在挂载到本地的网络磁盘中打开，就暂时使用回车复制 NAS 中的文件路径，顺便打开 FileStation，直接粘贴路径就能访问到文件了，为了防止误下载，如果搜索到的路径是一个文件的话，还要删除掉最后的文件名，以免 FileStation 访问出错
-
-## 参考
-
-* [synology-api](https://github.com/N4S4/synology-api)
-* [alfred-workflow-py3](https://github.com/NorthIsUp/alfred-workflow-py3)
-* [Synology Universal Search CLI](https://www.kaper.com/software/synology-universal-search-cli/)
-* [python download file from Synology FileStation API](https://stackoverflow.com/questions/62696185/python-download-file-from-synology-filestation-api)
-
-
-]]></description><link>https://vaala.cat/posts/在Alfred中丝滑的搜索群晖NAS中的文件</link><guid isPermaLink="true">https://vaala.cat/posts/在Alfred中丝滑的搜索群晖NAS中的文件</guid><pubDate>Sat, 29 Jan 2022 17:56:49 GMT</pubDate></item><item><title><![CDATA[修复 MacOS TimeMachine 的同步错误]]></title><description><![CDATA[
-## 引言
-
-作为一个新的白🍎用户，对于 TimeMachine 属于又爱又恨，其官方指定的备份目标 AirPort Time Capsule 实在是过于高贵，所以我选择使用一个提供 AFP 服务的 NAS 作为备份目标磁盘 （SMB 协议据说会出现神秘掉盘问题）
-
-在内网中快乐的使用几天后出了趟门，想着使用 Wireguard 连回内网路由段接着备份。理想非常的丰满，实践却出了问题，在某一次备份时意外断了网，回到内网中报了如下错误
-
-```
-无法访问备份磁盘映像“Vaala的MacBook Pro.sparsebundle”（错误35）。
-```
-
-在 Apple 论坛和互联网中找到的都是让我清除备份重来，就像下面这样
-
-> [https://discussionschinese.apple.com/thread/86190](https://discussionschinese.apple.com/thread/86190)
-
-但备份不久是为了防止出错？再来清理出错的备份也太本末倒置了，分析问题发生的情况后我选择降低备份频率，使用 TimeMachineEditor 阻止日间备份，并且备份只能在 Mac 不活跃时进行。不出意外，再次苟活几天后又出现了相同错误，原因竟然是 MacOS 在休眠时会自动断开网络连接导致备份失败😅😅😅😅，在经过两次清空备份后，抽了一点时间查找相关资料，得到了最终的解决方案
-
-## 步骤
-
-1. 首先关闭掉 TimeMachine 中的自动备份，其它与 TimeMachine 相关的程序例如 TimeMachineEditor 也尽量终止，在终止后尽量重启一次保证没有进程占用相关资源。 
-
-2. 找到备份磁盘中的 `sparsebundle` 文件，将下面命令的路径替换掉。
-
-```bash
-hdiutil attach -nomount /path/to/sparsebundleFile
-```
-
-3. 得到备份磁盘名称，会有很多个磁盘，找到格式为 `/dev/diskNs2` 的磁盘，`N` 为数字，`s2` 为第二分区，备注为 `Apple_APFS`，我这里是 `/dev/disk4s2`，接下来对该分区的备份进行检查。
-
-```bash
-# 要注意这里的磁盘前面加了一个r代表raw原始不缓存设备
-fsck_hfs -p /dev/rdisk4s2 
-```
-
-4. 如果命令出现错误，将命令中的 p 参数替换为 f 再试一次，如果错误无法修复，还是考虑格式化重来吧
-
-> 对于错误我们可以使用 `diskutil mount diskNs2` 挂载镜像并在 Finder 中检查。
-
-5. 然后我们 detatch 备份区
-
-```bash
-# 这里没有指定第二分区
+<pre><code class="lang-bash"># 这里没有指定第二分区
 hdiutil detach diskN
-```
+</code></pre>
 
-6. 确定没有报错然后在 Finder 中找到 `sparsebundle` 文件，然后在文件上右键单击，点击查看包内容，找到名为 `com.apple.TimeMachine.MachineID.plist` 的文件，使用 Xcode 打开编辑 （保证xml文件格式不会出错），找到 `VerificationState` 将值修改为 1
+<ol>
+<li><p>确定没有报错然后在 Finder 中找到 <code>sparsebundle</code> 文件，然后在文件上右键单击，点击查看包内容，找到名为 <code>com.apple.TimeMachine.MachineID.plist</code> 的文件，使用 Xcode 打开编辑 （保证xml文件格式不会出错），找到 <code>VerificationState</code> 将值修改为 1</p>
+</li>
+<li><p>如果存在键 <code>RecoveryBackupDeclinedDate</code> 则将其键和值都删除</p>
+</li>
+<li><p>保存修改，在 TimeMachine 设置中移除磁盘，然后再将磁盘加入备份目标，点击立即备份即可</p>
+</li>
+</ol>
+<h2 id="-">参考</h2>
 
-7. 如果存在键 `RecoveryBackupDeclinedDate` 则将其键和值都删除
+<ul>
+<li><a href="https://apple.stackexchange.com/questions/375894/inheriting-time-machine-backup-invalid-target">Inheriting Time Machine Backup: Invalid Target</a></li>
+</ul>
+<blockquote>
+<p>MacOS 确实不错，不过里面吃了💩的设定能不能改改啊😅</p>
+</blockquote>
+]]></description><link>https://vaala.cat/posts/修复-MacOS-TimeMachine-的同步错误</link><guid isPermaLink="true">https://vaala.cat/posts/修复-MacOS-TimeMachine-的同步错误</guid><pubDate>Sun, 23 Jan 2022 20:24:11 GMT</pubDate></item><item><title><![CDATA[Mysql的UTF8与UTF8mb4]]></title><description><![CDATA[<p>由于某个神秘项目的需要，出现了一个导入上亿条 utf8 数据到 mysql 5.7 中的需求，在实际使用的过程中，我发现 node 在向数据库中写入中文数据时会出现类似下面的报错</p>
 
-8. 保存修改，在 TimeMachine 设置中移除磁盘，然后再将磁盘加入备份目标，点击立即备份即可
+<pre><code>failed: Error: Incorrect string value: &#39;\\xC4\\x83ri&#39; for column &#39;name&#39; at row 1
+</code></pre>
+<p>于是我猜测是字符编码的问题，于是就将编码全都改成了 utf8，但尝试过后还是存在这个报错，遂上 stackoverflow 学习了以下前人的经验，发现了一篇文章 <a href="https://mathiasbynens.be/notes/mysql-utf8mb4#utf8-to-utf8mb4">How to support full Unicode in MySQL databases · Mathias Bynens</a> 这里详细讲解了 mysql 中 utf8 编码的问题，并且指出 mysql 中推荐一直使用完整的 utf8mb4 编码，这里对文章做了一个翻译</p>
+<h2 id="-">修改库、表、列</h2>
 
-## 参考
+<ul>
+<li>数据库名
+<pre><code>ALTER DATABASE 库 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+</code></pre>
+</li>
+<li>表名
+<pre><code>ALTER TABLE 表 CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+</code></pre>
+</li>
+<li>列名
+<pre><code>ALTER TABLE 表 CHANGE 列1 列2 VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+</code></pre>
+</li>
+</ul>
+<h2 id="-">修改配置文件</h2>
 
-- [Inheriting Time Machine Backup: Invalid Target](https://apple.stackexchange.com/questions/375894/inheriting-time-machine-backup-invalid-target)
-
-> MacOS 确实不错，不过里面吃了💩的设定能不能改改啊😅]]></description><link>https://vaala.cat/posts/修复-MacOS-TimeMachine-的同步错误</link><guid isPermaLink="true">https://vaala.cat/posts/修复-MacOS-TimeMachine-的同步错误</guid><pubDate>Sun, 23 Jan 2022 20:24:11 GMT</pubDate></item><item><title><![CDATA[Mysql的UTF8与UTF8mb4]]></title><description><![CDATA[
-由于某个神秘项目的需要，出现了一个导入上亿条 utf8 数据到 mysql 5.7 中的需求，在实际使用的过程中，我发现 node 在向数据库中写入中文数据时会出现类似下面的报错
-```
-failed: Error: Incorrect string value: '\\xC4\\x83ri' for column 'name' at row 1
-```
-于是我猜测是字符编码的问题，于是就将编码全都改成了 utf8，但尝试过后还是存在这个报错，遂上 stackoverflow 学习了以下前人的经验，发现了一篇文章 [How to support full Unicode in MySQL databases · Mathias Bynens](https://mathiasbynens.be/notes/mysql-utf8mb4#utf8-to-utf8mb4) 这里详细讲解了 mysql 中 utf8 编码的问题，并且指出 mysql 中推荐一直使用完整的 utf8mb4 编码，这里对文章做了一个翻译
-
-## 修改库、表、列
-
-- 数据库名
-```
-ALTER DATABASE 库 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-```
-- 表名
-```
-ALTER TABLE 表 CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-- 列名
-```
-ALTER TABLE 表 CHANGE 列1 列2 VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-## 修改配置文件
-
-```
-[client]  
+<pre><code>[client]  
 default-character-set = utf8mb4  
-  
+
 [mysql]  
 default-character-set = utf8mb4  
-  
+
 [mysqld]  
 character-set-server = utf8mb4  
 collation-server = utf8mb4_unicode_ci
-```
-然后重启服务
-```
-sudo service mysql restart
-```
+</code></pre>
+<p>然后重启服务</p>
 
-## 检查更改结果
+<pre><code>sudo service mysql restart
+</code></pre>
+<h2 id="-">检查更改结果</h2>
+<p>最终的修改结果应该如下所示，注意其中只有系统编码还是 utf8</p>
 
-最终的修改结果应该如下所示，注意其中只有系统编码还是 utf8
-```
-mysql> SHOW VARIABLES WHERE Variable_name LIKE 'character_set_%' OR Variable_name LIKE 'collation%';
+<pre><code>mysql&gt; SHOW VARIABLES WHERE Variable_name LIKE &#39;character_set_%&#39; OR Variable_name LIKE &#39;collation%&#39;;
 +--------------------------+--------------------+
 | Variable_name            | Value              |
 +--------------------------+--------------------+
@@ -789,35 +1468,32 @@ mysql> SHOW VARIABLES WHERE Variable_name LIKE 'character_set_%' OR Variable_nam
 | collation_server         | utf8mb4_unicode_ci |
 +--------------------------+--------------------+
 10 rows in set (0.00 sec)
-```
-## 思考
+</code></pre>
+<h2 id="-">思考</h2>
+<p>由于 mysql 并没有对 utf8mb4 编码进行大力推荐使用，导致现在很多的项目还在使用不完整的 utf8 编码，这里我就联想到了 mysql 中 GBK 编码存在的宽字节注入</p>
+<blockquote>
+<p>宽字节注入：因为字符集不同 躲过 SQL 注入过滤函数 <code>addslashes()</code> 使 <code>addslashes</code> 过滤的<span style={{ color: 'red' }}>单引号、双引号、反斜杠、NULL</span>可以利用，从而绕过SQL注入防护达成SQL注入</p>
+</blockquote>
+<p>也是因为字符集不统一造成的逃逸，这里的 utf8 虽然我还没有看到相关的文章对其进行利用，不过这里显然是存在安全风险的，特别是对于中文站点，自我感觉容易造成二次注入，所以要注意以后使用 mysql 的时候一定要规避 utf8 编码，全部换成 utf8mb4，也不差那一字节的空间。</p>
+<h2 id="-">参考</h2>
 
-由于 mysql 并没有对 utf8mb4 编码进行大力推荐使用，导致现在很多的项目还在使用不完整的 utf8 编码，这里我就联想到了 mysql 中 GBK 编码存在的宽字节注入
+<ul>
+<li><a href="https://mathiasbynens.be/notes/mysql-utf8mb4#utf8-to-utf8mb4">How to support full Unicode in MySQL databases · Mathias Bynens</a></li>
+<li><a href="https://stackoverflow.com/questions/30951226/mysql-encoding-error">Mysql encoding error</a></li>
+<li><a href="https://lalajun.github.io/2018/05/11/mysql-%E5%AD%97%E7%AC%A6%E9%9B%86%E6%BC%8F%E6%B4%9E/#%E5%AE%BD%E5%AD%97%E8%8A%82%E6%B3%A8%E5%85%A5">Mysql-字符集漏洞分析</a></li>
+<li><a href="https://www.leavesongs.com/PENETRATION/mysql-charset-trick.html">Mysql字符编码利用技巧</a></li>
+</ul>
+]]></description><link>https://vaala.cat/posts/Mysql的字符编码的大坑</link><guid isPermaLink="true">https://vaala.cat/posts/Mysql的字符编码的大坑</guid><pubDate>Wed, 28 Apr 2021 12:44:38 GMT</pubDate></item><item><title><![CDATA[HDUACM OJ 自动 AC 机]]></title><description><![CDATA[<h2 id="-">背景</h2>
+<p>因为学校政策问题，大二才学习 C 语言课程，老师要求我们刷满 HDUOJ 60 道题目，当然像我这种已经 OI 退役的选手必然不想再碰算法，于是找 vy 要了一百多道 AC 代码，写了个爬虫交了上去。抓包看了下 HDU 的提交逻辑，发现完全没有对爬虫做限制，直接用 postman 生成的代码带上 session 就能正常工作</p>
+<h2 id="-">代码</h2>
 
-> 宽字节注入：因为字符集不同 躲过 SQL 注入过滤函数 `addslashes()` 使 `addslashes` 过滤的<span style={{ color: 'red' }}>单引号、双引号、反斜杠、NULL</span>可以利用，从而绕过SQL注入防护达成SQL注入
-
-也是因为字符集不统一造成的逃逸，这里的 utf8 虽然我还没有看到相关的文章对其进行利用，不过这里显然是存在安全风险的，特别是对于中文站点，自我感觉容易造成二次注入，所以要注意以后使用 mysql 的时候一定要规避 utf8 编码，全部换成 utf8mb4，也不差那一字节的空间。
-
-## 参考
-
-- [How to support full Unicode in MySQL databases · Mathias Bynens](https://mathiasbynens.be/notes/mysql-utf8mb4#utf8-to-utf8mb4)
-- [Mysql encoding error](https://stackoverflow.com/questions/30951226/mysql-encoding-error)
-- [Mysql-字符集漏洞分析](https://lalajun.github.io/2018/05/11/mysql-%E5%AD%97%E7%AC%A6%E9%9B%86%E6%BC%8F%E6%B4%9E/#%E5%AE%BD%E5%AD%97%E8%8A%82%E6%B3%A8%E5%85%A5)
-- [Mysql字符编码利用技巧](https://www.leavesongs.com/PENETRATION/mysql-charset-trick.html)
-]]></description><link>https://vaala.cat/posts/Mysql的字符编码的大坑</link><guid isPermaLink="true">https://vaala.cat/posts/Mysql的字符编码的大坑</guid><pubDate>Wed, 28 Apr 2021 12:44:38 GMT</pubDate></item><item><title><![CDATA[HDUACM OJ 自动 AC 机]]></title><description><![CDATA[
-## 背景
-
-因为学校政策问题，大二才学习 C 语言课程，老师要求我们刷满 HDUOJ 60 道题目，当然像我这种已经 OI 退役的选手必然不想再碰算法，于是找 vy 要了一百多道 AC 代码，写了个爬虫交了上去。抓包看了下 HDU 的提交逻辑，发现完全没有对爬虫做限制，直接用 postman 生成的代码带上 session 就能正常工作
-
-## 代码
-```python
-import os
+<pre><code class="lang-python">import os
 import urllib
 import base64
 import requests
 import time
 
-path = "C:\\Users\\hahahahaha\\Documents\\Code\\hdu_auto_ac1\\srccode"  # AC代码文件夹目录
+path = &quot;C:\\Users\\hahahahaha\\Documents\\Code\\hdu_auto_ac1\\srccode&quot;  # AC代码文件夹目录
 files = os.listdir(path)
 
 codepath = []
@@ -826,338 +1502,383 @@ src = {}
 
 for root, dirs, files in os.walk(path):
     for file in files:
-        if os.path.join(root, file).find("cpp") != -1:
+        if os.path.join(root, file).find(&quot;cpp&quot;) != -1:
             codepath.append(os.path.join(root, file))
 
 for i in codepath:
-    f = open(i, mode='r', encoding='UTF-8')
+    f = open(i, mode=&#39;r&#39;, encoding=&#39;UTF-8&#39;)
     code = f.read()
     p = os.path.split(i)
     p1 = os.path.split(p[0])
     code = urllib.parse.quote(code)
-    code = bytes(code, encoding="utf8")
+    code = bytes(code, encoding=&quot;utf8&quot;)
     code = base64.b64encode(code)
-    src[p1[1]] = str(code, encoding="utf-8")
+    src[p1[1]] = str(code, encoding=&quot;utf-8&quot;)
 
-url = "http://acm.hdu.edu.cn/submit.php?action=submit"
+url = &quot;http://acm.hdu.edu.cn/submit.php?action=submit&quot;
 
 headers = {
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-    'accept-encoding': 'gzip, deflate',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'cache-control': 'max-age=0',
-    'content-type': 'application/x-www-form-urlencoded',
-    'cookie': 'PHPSESSID=xxxxxxxxxxxxxxxx; exesubmitlang=0',
-    'host': 'acm.hdu.edu.cn',
-    'origin': 'http://acm.hdu.edu.cn',
-    'proxy-connection': 'keep-alive',
-    'referer': 'http://acm.hdu.edu.cn/submit.php?action=submit',
-    'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66'
+    &#39;accept&#39;: &#39;text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9&#39;,
+    &#39;accept-encoding&#39;: &#39;gzip, deflate&#39;,
+    &#39;accept-language&#39;: &#39;zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6&#39;,
+    &#39;cache-control&#39;: &#39;max-age=0&#39;,
+    &#39;content-type&#39;: &#39;application/x-www-form-urlencoded&#39;,
+    &#39;cookie&#39;: &#39;PHPSESSID=xxxxxxxxxxxxxxxx; exesubmitlang=0&#39;,
+    &#39;host&#39;: &#39;acm.hdu.edu.cn&#39;,
+    &#39;origin&#39;: &#39;http://acm.hdu.edu.cn&#39;,
+    &#39;proxy-connection&#39;: &#39;keep-alive&#39;,
+    &#39;referer&#39;: &#39;http://acm.hdu.edu.cn/submit.php?action=submit&#39;,
+    &#39;upgrade-insecure-requests&#39;: &#39;1&#39;,
+    &#39;user-agent&#39;: &#39;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66&#39;
 }
 
 for k in src:
-    payload = "check=0&_usercode=" + \
-        urllib.parse.quote(src[k])+"&problemid="+k+"&language=0"
+    payload = &quot;check=0&amp;_usercode=&quot; + \
+        urllib.parse.quote(src[k])+&quot;&amp;problemid=&quot;+k+&quot;&amp;language=0&quot;
 
-    response = requests.request("POST", url, headers=headers, data=payload)
+    response = requests.request(&quot;POST&quot;, url, headers=headers, data=payload)
     time.sleep(10)
-```
-要注意的是 OJ 的提交编码是先进行一次 urlencode，再 base64 然后再 urlencode，直接带上数据 post 上去就成功了
+</code></pre>
+<p>要注意的是 OJ 的提交编码是先进行一次 urlencode，再 base64 然后再 urlencode，直接带上数据 post 上去就成功了</p>
+<h2 id="-">项目地址</h2>
+<p><a href="https://github.com/VaalaCat/hdu-auto-ac">https://github.com/VaalaCat/hdu-auto-ac</a></p>
+]]></description><link>https://vaala.cat/posts/HDUACM-OJ-自动-AC-机</link><guid isPermaLink="true">https://vaala.cat/posts/HDUACM-OJ-自动-AC-机</guid><pubDate>Wed, 30 Dec 2020 14:13:59 GMT</pubDate></item><item><title><![CDATA[信息论复习思维导图]]></title><description><![CDATA[<p>有到了每年懒狗的末日，丢个图上来
+<img src="/images/blog/%E4%BF%A1%E6%81%AF%E8%AE%BA.svg" alt=""></p>
+]]></description><link>https://vaala.cat/posts/信息论复习思维导图</link><guid isPermaLink="true">https://vaala.cat/posts/信息论复习思维导图</guid><pubDate>Sun, 22 Nov 2020 18:34:10 GMT</pubDate></item><item><title><![CDATA[限制intel处理器睿频提升轻薄本使用体验]]></title><description><![CDATA[<p>surface book 2 已经服役两年多了，自从前几个月配置好了服务器后就大量使用了云服务迁移了计算服务和数据，大大减少了单终端的负载和重要性，于是趁着这个机会重装了系统，想着把本地的环境全部使用虚拟化部署，免得邮箱之前一样将环境整的乱七八糟。<br>但是让我没想到的是重装过后鼠标拖动窗口移动竟然还是会出现之前一样的卡顿，但是玩游戏又不会卡顿，让我感觉到很是奇怪。打开了n多监控软件，发现在高速移动鼠标的时候会出现 cpu 频率急剧增加的情况，于是尝试使用电源配置限制最高频率，反正也没法一直跑满频率：</p>
 
-## 项目地址
-
-[https://github.com/VaalaCat/hdu-auto-ac](https://github.com/VaalaCat/hdu-auto-ac)]]></description><link>https://vaala.cat/posts/HDUACM-OJ-自动-AC-机</link><guid isPermaLink="true">https://vaala.cat/posts/HDUACM-OJ-自动-AC-机</guid><pubDate>Wed, 30 Dec 2020 14:13:59 GMT</pubDate></item><item><title><![CDATA[信息论复习思维导图]]></title><description><![CDATA[
-有到了每年懒狗的末日，丢个图上来
-![](/images/blog/%E4%BF%A1%E6%81%AF%E8%AE%BA.svg)
-]]></description><link>https://vaala.cat/posts/信息论复习思维导图</link><guid isPermaLink="true">https://vaala.cat/posts/信息论复习思维导图</guid><pubDate>Sun, 22 Nov 2020 18:34:10 GMT</pubDate></item><item><title><![CDATA[限制intel处理器睿频提升轻薄本使用体验]]></title><description><![CDATA[
-surface book 2 已经服役两年多了，自从前几个月配置好了服务器后就大量使用了云服务迁移了计算服务和数据，大大减少了单终端的负载和重要性，于是趁着这个机会重装了系统，想着把本地的环境全部使用虚拟化部署，免得邮箱之前一样将环境整的乱七八糟。  
-但是让我没想到的是重装过后鼠标拖动窗口移动竟然还是会出现之前一样的卡顿，但是玩游戏又不会卡顿，让我感觉到很是奇怪。打开了n多监控软件，发现在高速移动鼠标的时候会出现 cpu 频率急剧增加的情况，于是尝试使用电源配置限制最高频率，反正也没法一直跑满频率：
-```
-powercfg -SETDCVALUEINDEX SCHEME_BALANCED SUB_PROCESSOR PROCFREQMAX 3800
+<pre><code>powercfg -SETDCVALUEINDEX SCHEME_BALANCED SUB_PROCESSOR PROCFREQMAX 3800
 powercfg -SETACVALUEINDEX SCHEME_BALANCED SUB_PROCESSOR PROCFREQMAX 3800
-```
-然后重启生效，重启过后发现很多小问题都得到了解决，鼠标拖动也是丝般顺滑，舒服]]></description><link>https://vaala.cat/posts/限制intel处理器睿频提升轻薄本使用体验</link><guid isPermaLink="true">https://vaala.cat/posts/限制intel处理器睿频提升轻薄本使用体验</guid><pubDate>Mon, 28 Sep 2020 09:35:18 GMT</pubDate></item><item><title><![CDATA[ctfd使用ctfd-whale动态靶机插件搭建靶场指南]]></title><description><![CDATA[
-# 引言
-
-由于之前的文章使用的是赵师傅的仓库，里面的 ctfd 版本不能保持官网最新，很多师傅都提到了这个问题，于是重新部署了一下 ctfd 并做一下记录
+</code></pre>
+<p>然后重启生效，重启过后发现很多小问题都得到了解决，鼠标拖动也是丝般顺滑，舒服</p>
+]]></description><link>https://vaala.cat/posts/限制intel处理器睿频提升轻薄本使用体验</link><guid isPermaLink="true">https://vaala.cat/posts/限制intel处理器睿频提升轻薄本使用体验</guid><pubDate>Mon, 28 Sep 2020 09:35:18 GMT</pubDate></item><item><title><![CDATA[ctfd使用ctfd-whale动态靶机插件搭建靶场指南]]></title><description><![CDATA[<h1 id="-">引言</h1>
+<p>由于之前的文章使用的是赵师傅的仓库，里面的 ctfd 版本不能保持官网最新，很多师傅都提到了这个问题，于是重新部署了一下 ctfd 并做一下记录
 首先要注意的是系统版本，经过众多师傅的反馈发现 Ubuntu 20 会出现不可预测的 bug，请尽量使用 Ubuntu 18 部署
-该文章历史版本：[github](https://raw.githubusercontent.com/VaalaCat/vaalacat.github.io/9837ec2c6c09af3a504d2537db304788cccbf006/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/index.html)
+该文章历史版本：<a href="https://raw.githubusercontent.com/VaalaCat/vaalacat.github.io/9837ec2c6c09af3a504d2537db304788cccbf006/2020/09/21/ctfd%E4%BD%BF%E7%94%A8ctfd-whale%E5%8A%A8%E6%80%81%E9%9D%B6%E6%9C%BA%E6%8F%92%E4%BB%B6%E6%90%AD%E5%BB%BA%E9%9D%B6%E5%9C%BA%E6%8C%87%E5%8D%97/index.html">github</a></p>
+<h1 id="-">部署</h1>
+<p>这里我使用 <a href="https://github.com/frankli0324/ctfd-whale">frankli0324</a> 师傅 fork 后修改的赵师傅 ctfd whale 的版本进行搭建，并对配置文件和项目文件进行了一些定制后打包到了我自己的仓库方便部署</p>
 
-# 部署
+<ul>
+<li><a href="https://github.com/Un1kTeam/ctfd-whale">VaalaCat/ctfd_whale</a></li>
+<li><a href="https://github.com/Un1kTeam/CTFd">VaalaCat/CTFd</a></li>
+</ul>
+<h2 id="-">准备</h2>
+<h3 id="-">安装环境</h3>
+<p>由于动态靶机是使用 <code>docker</code> 实现的，所以首先要准备安装一下 <code>docker</code></p>
 
-这里我使用 [frankli0324](https://github.com/frankli0324/ctfd-whale) 师傅 fork 后修改的赵师傅 ctfd whale 的版本进行搭建，并对配置文件和项目文件进行了一些定制后打包到了我自己的仓库方便部署
+<pre><code>curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+</code></pre>
+<p>然后还要准备 <code>docker-compose</code></p>
 
-- [VaalaCat/ctfd_whale](https://github.com/Un1kTeam/ctfd-whale)
-- [VaalaCat/CTFd](https://github.com/Un1kTeam/CTFd)
+<pre><code>sudo pip3 install docker-compose -i https://pypi.tuna.tsinghua.edu.cn/simple
+</code></pre>
+<h3 id="-">配置环境</h3>
+<p>由于插件使用的是集群的模式，所以这里要创建一个单个服务器的集群</p>
 
-## 准备
+<pre><code>docker swarm init
+</code></pre>
+<p>然后将这个服务器加入集群</p>
 
-### 安装环境
+<pre><code>docker node update --label-add=&#39;name=linux-1&#39; $(docker node ls -q)
+</code></pre>
+<p>最后要准备的是给 <code>docker</code> 更换镜像源，这里推荐将 daocloud 和 aliyun 的源都添加进去，不然会很龟速，修改文件 <code>/etc/docker/daemon.json</code>，两个镜像都需要自己取申请一下，改完后类似下面这样</p>
 
-由于动态靶机是使用 `docker` 实现的，所以首先要准备安装一下 `docker`
-```
-curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun 
-```
-然后还要准备 `docker-compose`
-```
-sudo pip3 install docker-compose -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-### 配置环境
-
-由于插件使用的是集群的模式，所以这里要创建一个单个服务器的集群
-```
-docker swarm init
-```
-然后将这个服务器加入集群
-```
-docker node update --label-add='name=linux-1' $(docker node ls -q)
-```
-最后要准备的是给 `docker` 更换镜像源，这里推荐将 daocloud 和 aliyun 的源都添加进去，不然会很龟速，修改文件 `/etc/docker/daemon.json`，两个镜像都需要自己取申请一下，改完后类似下面这样
-```
-{
-    "registry-mirrors": ["https://233666.mirror.aliyuncs.com","http://233666.m.daocloud.io"]
+<pre><code>{
+    &quot;registry-mirrors&quot;: [&quot;https://233666.mirror.aliyuncs.com&quot;,&quot;http://233666.m.daocloud.io&quot;]
 }
-```
-也可以给 docker 设置镜像源代理
-```
-sudo mkdir -p /etc/systemd/system/docker.service.d
+</code></pre>
+<p>也可以给 docker 设置镜像源代理</p>
+
+<pre><code>sudo mkdir -p /etc/systemd/system/docker.service.d
 sudo nano /etc/systemd/system/docker.service.d/http-proxy.conf
-```
-然后添加内容，这里是我自己的代理
-```
-[Service]
-Environment="HTTP_PROXY=http://127.0.0.1:7890"
-Environment="HTTPS_PROXY=http://127.0.0.1:7890"
-```
-重启生效
-```
-sudo systemctl daemon-reload
+</code></pre>
+<p>然后添加内容，这里是我自己的代理</p>
+
+<pre><code>[Service]
+Environment=&quot;HTTP_PROXY=http://127.0.0.1:7890&quot;
+Environment=&quot;HTTPS_PROXY=http://127.0.0.1:7890&quot;
+</code></pre>
+<p>重启生效</p>
+
+<pre><code>sudo systemctl daemon-reload
 sudo systemctl restart docker
-```
+</code></pre>
+<h2 id="-">安装</h2>
+<h3 id="-">下载</h3>
+<p>首先使用我仓库中的 <code>ctfd</code>，已经做好了镜像换源等工作。</p>
 
-## 安装
+<pre><code>git clone https://github.com/Un1kTeam/CTFd --depth=1
+</code></pre>
+<h3 id="-">配置</h3>
 
-### 下载
-
-首先使用我仓库中的 `ctfd`，已经做好了镜像换源等工作。
-```
-git clone https://github.com/Un1kTeam/CTFd --depth=1
-```
-
-### 配置
-
-```
-cd CTFd
+<pre><code>cd CTFd
 nano conf/frp/frps.ini # token 一定要随机
 nano conf/frp/frpc.ini # token 一定要随机
-```
-这里给出 `frp` 两个配置文件的内容供参考，大致就是只需要修改 token
+</code></pre>
+<p>这里给出 <code>frp</code> 两个配置文件的内容供参考，大致就是只需要修改 token</p>
 
-- `frps.ini`
-```
-[common]
+<ul>
+<li><p><code>frps.ini</code></p>
+
+<pre><code>[common]
 bind_port = 7000
 vhost_http_port = 9123
 token = your_token
 subdomain_host = node.vaala.ink
-```
+</code></pre>
+</li>
+<li><p><code>frpc.ini</code></p>
 
-- `frpc.ini`
-```
-[common]
+<pre><code>[common]
 token = your_token
 server_addr = 172.1.0.3
 server_port = 7000
 admin_addr = 172.1.0.4
 admin_port = 7400
-```
-然后安装插件并启动
-```
-git submodule update --init
+</code></pre>
+<p>然后安装插件并启动</p>
+
+<pre><code>git submodule update --init
 docker-compose up -d
-```
-不出意外就应该成功了，使用
-```
-docker ps -a
-```
-查看是否有没有正确启动的镜像
+</code></pre>
+<p>不出意外就应该成功了，使用</p>
 
-### 平台设置
+<pre><code>docker ps -a
+</code></pre>
+<p>查看是否有没有正确启动的镜像</p>
+</li>
+</ul>
+<h3 id="-">平台设置</h3>
+<p>浏览器访问 9124 端口进入平台，完成平台基本配置，然后进入后台，右上角的插件中进入 <code>Whale</code> 设置，其中，左侧 Docker 菜单栏如果没有特殊需求无需更改，只需更改左侧 Frp 菜单栏中的内容</p>
 
-浏览器访问 9124 端口进入平台，完成平台基本配置，然后进入后台，右上角的插件中进入 `Whale` 设置，其中，左侧 Docker 菜单栏如果没有特殊需求无需更改，只需更改左侧 Frp 菜单栏中的内容
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Http Domain Suffix</td>
+<td><code>node.vaala.ink</code> 这里填写使用http方式访问靶机的泛解析域名</td>
+</tr>
+<tr>
+<td>Http Port</td>
+<td><code>9123</code>          这里填写frps中的vhost_http_port，该端口为http方式靶机访问的端口</td>
+</tr>
+<tr>
+<td>Direct IP Address</td>
+<td><code>chive.vaala.cloud</code> 这里填写服务器ip，用于显示Direct方式访问的题目的IP</td>
+</tr>
+<tr>
+<td>Direct Minimum Port</td>
+<td><code>9125</code>          这里填写用于动态靶机Direct方式的开始端口</td>
+</tr>
+<tr>
+<td>Direct Maximum Port</td>
+<td><code>9129</code>          这里填写结束端口</td>
+</tr>
+</tbody>
+</table>
+<p>最后点一下更新就可以保存配置了，填写完成后新建题目测试是否成功，按下表新建题目，表中没有提到的保持默认就好</p>
 
-| 项                    | 内容                                                                       |
-| --------------------- | ------------------------------------------------------------------------- |
-| Http Domain Suffix    | `node.vaala.ink` 这里填写使用http方式访问靶机的泛解析域名                         |
-| Http Port             | `9123`          这里填写frps中的vhost_http_port，该端口为http方式靶机访问的端口   |
-| Direct IP Address     | `chive.vaala.cloud` 这里填写服务器ip，用于显示Direct方式访问的题目的IP             |
-| Direct Minimum Port   | `9125`          这里填写用于动态靶机Direct方式的开始端口                         |
-| Direct Maximum Port   | `9129`          这里填写结束端口                                              |
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Choose Challenge Type</td>
+<td><code>Dynamic docker</code></td>
+</tr>
+<tr>
+<td>Name</td>
+<td><code>test</code></td>
+</tr>
+<tr>
+<td>Category</td>
+<td><code>test</code></td>
+</tr>
+<tr>
+<td>Docker Image</td>
+<td><code>vaalacat/push_f12</code></td>
+</tr>
+<tr>
+<td>Frp Redirect Type</td>
+<td><code>Direct</code> 或者 <code>Http</code></td>
+</tr>
+<tr>
+<td>Frp Redirect Port</td>
+<td><code>80</code></td>
+</tr>
+<tr>
+<td>Initial Value</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td>Decay Limit</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td>Minimum Value</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td>Score Type</td>
+<td><code>dynamic score</code></td>
+</tr>
+</tbody>
+</table>
+<p>新建题目过后点击启动，然后等待靶机创建，可以在服务器中 <code>docker ps -a</code> 查看是否启动，若启动成功则搭建完成</p>
+<h2 id="-">总结</h2>
+<p>我的仓库中所使用的端口一共有三类，需要修改平台信息请按照以下文件位置修改</p>
 
-最后点一下更新就可以保存配置了，填写完成后新建题目测试是否成功，按下表新建题目，表中没有提到的保持默认就好
+<ul>
+<li>9123:<br>  默认 http 模式靶机访问端口，需要修改 <code>frps.ini</code>、后台中的 <code>Http Port</code>、<code>docker-compose.yml</code></li>
+<li>9124:<br>  默认为 ctfd 端口，需要修改 <code>docker-compose.yml</code></li>
+<li>9125-9129:
+  动态靶机 Direct 模式端口，需要修改 <code>docker-compose.yml</code>、后台中的端口范围</li>
+</ul>
+<p>完成以上文件的修改即可完成对平台用到端口的修改</p>
+<h1 id="-">参考</h1>
 
-| 项                    | 内容                |
-| --------------------- | ------------------- |
-| Choose Challenge Type | `Dynamic docker`    |
-| Name                  | `test`              |
-| Category              | `test`              |
-| Docker Image          | `vaalacat/push_f12` |
-| Frp Redirect Type     | `Direct` 或者 `Http` |
-| Frp Redirect Port     | `80`                |
-| Initial Value         | `1`                 |
-| Decay Limit           | `1`                 |
-| Minimum Value         | `1`                 |
-| Score Type            | `dynamic score`     |
+<ul>
+<li><a href="https://github.com/frankli0324/ctfd-whale">ctfd_whale</a></li>
+<li><a href="https://www.zhaoj.in/read-6333.html">CTFd-Whale 推荐部署实践</a></li>
+</ul>
+]]></description><link>https://vaala.cat/posts/ctfd使用ctfd-whale动态靶机插件搭建靶场指南</link><guid isPermaLink="true">https://vaala.cat/posts/ctfd使用ctfd-whale动态靶机插件搭建靶场指南</guid><pubDate>Mon, 21 Sep 2020 14:57:19 GMT</pubDate></item><item><title><![CDATA[在WSL1中快乐的使用docker]]></title><description><![CDATA[<p>坑b微软死活不给我的 surface book2 推送 win10 2004 版，而 wsl1 不支持 docker 守护进程，但是 pwntools 只能在 linux 下安装，每次开个虚拟机麻烦的一p。某天在使用 vscode for wsl 时发现docker插件可以安装，于是就装起来玩了一下，发现安装过后是没法正常使用的。打开 docker for windows 设置开放 deamon 端口并且在 wsl 环境变量中设置</p>
 
-新建题目过后点击启动，然后等待靶机创建，可以在服务器中 `docker ps -a` 查看是否启动，若启动成功则搭建完成
+<pre><code>export DOCKER_HOST=tcp://127.0.0.1:2375
+</code></pre>
+<p>我发现 vscode 中可以正常显示 docker for windows 的容器了。所以我们可以通过在 wsl 中安装 docker-cli 来实现使用 docker 这个需求。首先要安装 docker-cli</p>
 
-## 总结
+<pre><code>sudo apt-get install docker.io
+</code></pre>
+<p>正当我高兴安装成功时，输入 <code>docker</code> 发现了输出</p>
 
-我的仓库中所使用的端口一共有三类，需要修改平台信息请按照以下文件位置修改
-
-- 9123:	
-	默认 http 模式靶机访问端口，需要修改 `frps.ini`、后台中的 `Http Port`、`docker-compose.yml`
-- 9124:	
-	默认为 ctfd 端口，需要修改 `docker-compose.yml`
-- 9125-9129:
-	动态靶机 Direct 模式端口，需要修改 `docker-compose.yml`、后台中的端口范围
-
-完成以上文件的修改即可完成对平台用到端口的修改
-
-# 参考
-
-- [ctfd_whale](https://github.com/frankli0324/ctfd-whale)
-- [CTFd-Whale 推荐部署实践](https://www.zhaoj.in/read-6333.html)]]></description><link>https://vaala.cat/posts/ctfd使用ctfd-whale动态靶机插件搭建靶场指南</link><guid isPermaLink="true">https://vaala.cat/posts/ctfd使用ctfd-whale动态靶机插件搭建靶场指南</guid><pubDate>Mon, 21 Sep 2020 14:57:19 GMT</pubDate></item><item><title><![CDATA[在WSL1中快乐的使用docker]]></title><description><![CDATA[
-坑b微软死活不给我的 surface book2 推送 win10 2004 版，而 wsl1 不支持 docker 守护进程，但是 pwntools 只能在 linux 下安装，每次开个虚拟机麻烦的一p。某天在使用 vscode for wsl 时发现docker插件可以安装，于是就装起来玩了一下，发现安装过后是没法正常使用的。打开 docker for windows 设置开放 deamon 端口并且在 wsl 环境变量中设置
-```
-export DOCKER_HOST=tcp://127.0.0.1:2375
-```
-我发现 vscode 中可以正常显示 docker for windows 的容器了。所以我们可以通过在 wsl 中安装 docker-cli 来实现使用 docker 这个需求。首先要安装 docker-cli
-```
-sudo apt-get install docker.io
-```
-正当我高兴安装成功时，输入 `docker` 发现了输出
-```
-The command 'docker' could not be found in this WSL 1 distro.
+<pre><code>The command &#39;docker&#39; could not be found in this WSL 1 distro.
 We recommend to convert this distro to WSL 2 and activate
 the WSL integration in Docker Desktop settings.
 
 See https://docs.docker.com/docker-for-windows/wsl/ for details.
-```
-看来是巨硬搞了一个也叫docker的东西来提醒我，那就需要把它删除
-```
-whereis docker
-```
-可以发现有一个二进制文件
-```
-/mnt/c/Program Files/Docker/Docker/resources/bin/docker
-```
-这个文件就是罪魁祸首，需要删除它，以防万一，把这个文件重命名。然后就可以快乐的在 wsl1 中运行docker了]]></description><link>https://vaala.cat/posts/在WSL1中快乐的使用docker</link><guid isPermaLink="true">https://vaala.cat/posts/在WSL1中快乐的使用docker</guid><pubDate>Mon, 31 Aug 2020 10:05:01 GMT</pubDate></item><item><title><![CDATA[ShareX 配置 Ubuntu Pastebin 和阿里云 oss 分享]]></title><description><![CDATA[
-用了 sharex 过后感觉给别人分享图片和代码文件的体验好了不少，但是 sharex 并没有提供 Ubuntu Pastebin 这个知名代码分享平台让我很难受，阿里云 oss 也尚未支持，而且在网上也没有找到相关的资料，之前的解决方案是使用自建的 hastebin 以及 nextcloud，虽然体验不错不过毕竟是自建的，没有高性能高带宽的服务器体验还是会大打折扣，于是只好自己解决然后记录一下了。
+</code></pre>
+<p>看来是巨硬搞了一个也叫docker的东西来提醒我，那就需要把它删除</p>
 
-## Ubuntu Pastebin
+<pre><code>whereis docker
+</code></pre>
+<p>可以发现有一个二进制文件</p>
 
-这个代码分享平台的格式还是很简单的，大概给出表格
+<pre><code>/mnt/c/Program Files/Docker/Docker/resources/bin/docker
+</code></pre>
+<p>这个文件就是罪魁祸首，需要删除它，以防万一，把这个文件重命名。然后就可以快乐的在 wsl1 中运行docker了</p>
+]]></description><link>https://vaala.cat/posts/在WSL1中快乐的使用docker</link><guid isPermaLink="true">https://vaala.cat/posts/在WSL1中快乐的使用docker</guid><pubDate>Mon, 31 Aug 2020 10:05:01 GMT</pubDate></item><item><title><![CDATA[ShareX 配置 Ubuntu Pastebin 和阿里云 oss 分享]]></title><description><![CDATA[<p>用了 sharex 过后感觉给别人分享图片和代码文件的体验好了不少，但是 sharex 并没有提供 Ubuntu Pastebin 这个知名代码分享平台让我很难受，阿里云 oss 也尚未支持，而且在网上也没有找到相关的资料，之前的解决方案是使用自建的 hastebin 以及 nextcloud，虽然体验不错不过毕竟是自建的，没有高性能高带宽的服务器体验还是会大打折扣，于是只好自己解决然后记录一下了。</p>
+<h2 id="ubuntu-pastebin">Ubuntu Pastebin</h2>
+<p>这个代码分享平台的格式还是很简单的，大概给出表格</p>
 
-- 请求
+<ul>
+<li>请求</li>
+</ul>
 
-| 方法 | URL                      | 请求体           |
-| ---- | ------------------------ | ---------------- |
-| POST | https://paste.ubuntu.com | Form URL encoded |
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>URL</th>
+<th>请求体</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><a href="https://paste.ubuntu.com">https://paste.ubuntu.com</a></td>
+<td>Form URL encoded</td>
+</tr>
+</tbody>
+</table>
 
-| 名称    | 值          |
-| ------- | ---------- |
-| poster  | VaalaCat   |
-| syntax  | text       |
-| content | \$input\$  |
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>poster</td>
+<td>VaalaCat</td>
+</tr>
+<tr>
+<td>syntax</td>
+<td>text</td>
+</tr>
+<tr>
+<td>content</td>
+<td>\$input\$</td>
+</tr>
+</tbody>
+</table>
 
-- 响应
+<ul>
+<li>响应</li>
+</ul>
 
-```
-$responseurl$
-```
+<pre><code>$responseurl$
+</code></pre>
+<h2 id="aliyun-oss">Aliyun OSS</h2>
+<p><del>正在测试</del>gugugugugugu</p>
+]]></description><link>https://vaala.cat/posts/ShareX-配置Ubuntu-Pastebin-分享</link><guid isPermaLink="true">https://vaala.cat/posts/ShareX-配置Ubuntu-Pastebin-分享</guid><pubDate>Tue, 25 Aug 2020 08:30:40 GMT</pubDate></item><item><title><![CDATA[博客搬迁]]></title><description><![CDATA[<h2 id="hahaha">hahaha</h2>
+<p>终于转战hexo了，不得不说github pages真的良心，自带cdn还不要钱，不过以前的评论是没法导出了，hexo这个直接把md拖进来就能当博客简直方便，顺便嫖了阿里云的oss做图床和加速静态资源，就算是github pages加速过后访问体验也是可以接受的，今后应该不会再搬迁博客了，以前的评论也只能就这么算了，相信之后博客会更高产把hahahahahah</p>
+]]></description><link>https://vaala.cat/posts/newblog</link><guid isPermaLink="true">https://vaala.cat/posts/newblog</guid><pubDate>Sun, 23 Aug 2020 15:23:33 GMT</pubDate></item><item><title><![CDATA[OBS Virtual Cam指北]]></title><description><![CDATA[<p>obs是一个通常用作直播换脸软件（😊，用途就是将本地的媒体资源虚拟为摄像头输出，可以起到更改视频流的作用。</p>
+<p>首先要安装软件，有两个文件，一个是主程序，一个是插件。</p>
+<p>由于网络环境问题，我将软件使用了cdn进行加速：<a href="https://wws.lanzous.com/b01bh2tmd">下载点我</a> 密码：5qb8</p>
+<p>安装一路默认就好</p>
+]]></description><link>https://vaala.cat/posts/obs-virtual-cam指北</link><guid isPermaLink="true">https://vaala.cat/posts/obs-virtual-cam指北</guid><pubDate>Wed, 10 Jun 2020 18:14:33 GMT</pubDate></item><item><title><![CDATA[为Idrac配置邮箱警报]]></title><description><![CDATA[<h2 id="-">想法</h2>
+<p>由于有了两个公网IP，遂捡了一台洋垃圾服务器以充分利用资源（其实就是想玩服务器）。由于两个IP一个是移动300M，一个是电信的100M，于是就把带宽较大的移动专线直接从网关路由插上了服务器，另一个则用于dell的idrac以管理服务器，以实现服务器在崩掉的情况下还能远程操作。(现已更新为双移动IP，都接入路由器，由路由器承担端口转发的工作。</p>
+<h2 id="-">实现</h2>
+<p>服务器本身的网络配置一帆风顺，照着Proxmox ve给的文档轻松就配置好了现已更新为esxi（不得不吐槽下移动的墙中墙，网络质量实在太差，在GitHub下个项目都能下出来一个缓存的老版本。倒是Dell的Idrac的邮箱配置是个巨坑。</p>
+<p>众所周知服务器都会有IPMI的配置，方便网管管理。但是我这也不是专业机房，没有人24小时监控（现在有了），于是打算部署一个邮箱报警。一番查找资料后发现idrac里面是有这个相关的设置，但是使用网易的邮箱一直都没有配置成功，换了腾讯，gmail也都不行。</p>
+<p>查找资料后在官方论坛中发现一个大坑，说是要将idrac中的网络设置里面，如图配置：</p>
+<p><img src="/images/upload/2020-05/image-1.png" alt=""></p>
+<p>dns中的名称要以邮箱名称为准（这就要求要设置好dns服务器，而idrac默认是不配置的，然后在邮箱设置里面如图设置</p>
+<p><img src="/images/upload/2020-05/image-2.png" alt=""></p>
+<p>然后是警报邮箱填上就行，填写好以后可以测试下是否设置成功</p>
+<p><img src="/images/upload/2020-05/image-3.png" alt=""></p>
+<p>在官网文档找一个警报等级高的id填上去点发送就可以了</p>
+]]></description><link>https://vaala.cat/posts/为idrac配置邮箱警报</link><guid isPermaLink="true">https://vaala.cat/posts/为idrac配置邮箱警报</guid><pubDate>Tue, 05 May 2020 20:11:23 GMT</pubDate></item><item><title><![CDATA[工科数学分析教材]]></title><description><![CDATA[<p><a href="images/upload/2020-02/大学数学工科数学分析上第5版13858731.pdf">大学工科数学分析上</a></p>
+<p><a href="images/upload/2020-02/14097849_大学数学工科数学分析第5版下_p232.pdf">大学工科数学分析下</a></p>
+]]></description><link>https://vaala.cat/posts/themathbook</link><guid isPermaLink="true">https://vaala.cat/posts/themathbook</guid><pubDate>Mon, 17 Feb 2020 10:26:26 GMT</pubDate></item><item><title><![CDATA[Robomaster校赛智能小车OpenCV视觉与神经网络环境搭建]]></title><description><![CDATA[<p>本项目的所有代码均上传至GitHub，项目地址：<a href="https://github.com/VaalaCat/AI_raspberry_car">https://github.com/VaalaCat/AI_raspberry_car</a></p>
+<h2 id="-">一、简介</h2>
+<p>由于作死选择了摄像头来做这个项目，那显而易见的需要用到opencv来处理这个图像。（其实之前是用picamera库，不过现在opencv也不用编译了，还是选opencv吧）</p>
+<p>首先要介绍一下我的设备：</p>
+<p><img src="/images/upload/2019-12/img_20191228_1547382525920447325202399-1024x768.jpg" alt=""></p>
 
-## Aliyun OSS
+<ul>
+<li>树莓派4（俺的pi3看样子是中道崩殂了）</li>
+<li>picamera模块</li>
+</ul>
+<p>小小的吐槽一下pi4的发热量，简直比810火龙还强，没个强点的散热根本跑不满。</p>
+<h2 id="-">二、环境搭建</h2>
+<h3 id="1-opencv-">1、opencv环境</h3>
+<p>既然说是要用到opencv，那就不得不提到opencv的安装。早在一年前我就妄图在我的pi3上安装python3的opencv，结果看到网上一大堆的python2直接pip安装的方法，又想到python3编译的龟速，还容易出错，心都凉了半截。不过今年再次翻资料的时候，找到了pip3安装opencv的方法，并且在我的pi3，pi4，pi zero w上，buster系统，无一失败。</p>
+<p>安装opencv步骤大致如下：</p>
 
-~~正在测试~~gugugugugugu]]></description><link>https://vaala.cat/posts/ShareX-配置Ubuntu-Pastebin-分享</link><guid isPermaLink="true">https://vaala.cat/posts/ShareX-配置Ubuntu-Pastebin-分享</guid><pubDate>Tue, 25 Aug 2020 08:30:40 GMT</pubDate></item><item><title><![CDATA[博客搬迁]]></title><description><![CDATA[
-## hahaha
-终于转战hexo了，不得不说github pages真的良心，自带cdn还不要钱，不过以前的评论是没法导出了，hexo这个直接把md拖进来就能当博客简直方便，顺便嫖了阿里云的oss做图床和加速静态资源，就算是github pages加速过后访问体验也是可以接受的，今后应该不会再搬迁博客了，以前的评论也只能就这么算了，相信之后博客会更高产把hahahahahah]]></description><link>https://vaala.cat/posts/newblog</link><guid isPermaLink="true">https://vaala.cat/posts/newblog</guid><pubDate>Sun, 23 Aug 2020 15:23:33 GMT</pubDate></item><item><title><![CDATA[OBS Virtual Cam指北]]></title><description><![CDATA[
-obs是一个通常用作直播换脸软件（😊，用途就是将本地的媒体资源虚拟为摄像头输出，可以起到更改视频流的作用。
+<ol>
+<li>启动树莓派首先要换源，否则下载可能会失败数次且相当龟速，详见tuna源：<a href="https://mirror.tuna.tsinghua.edu.cn/help/raspbian/">树莓派换源</a></li>
+<li>安装依赖项（由于我也不知道要用到些啥依赖，就瞎装了几个）<code>sudo apt-get install libhdf5-dev libhdf5-serial-dev libqtgui4 libqtwebkit4 libqt4-test python3-pyqt5 libatlas-base-dev libjasper-dev</code></li>
+<li>安装opencv（这里建议大家安装opencv3而不是默认的opencv4，每次我安装opencv4完成后都会遇到不可预料的错误）<code>sudo pip3 install --no-cache-dir opencv-contrib-python==3.4.3.18</code> （由于网络原因，下载可能较慢，这里我将whl包上传到了我的服务器以供快速下载安装：<a href="images/upload/2019-12/opencv_contrib_python-3.4.3.18-cp37-cp37m-linux_armv7l.whl">opencv3</a></li>
+</ol>
+<p>安装完成后，输入<code>python3</code> 然后<code>import cv2</code> 如果没有出错则说明安装成功。</p>
+<p>安装中的问题详见：<a href="https://zhuanlan.zhihu.com/p/92184435">Opencv的安装</a></p>
+<h3 id="2-tf-">2、tf神经网络环境</h3>
+<p>在安装完成后，当然要准备识别路线了，然而，路线识别简直是太困难了，所以对于岔路口分类，我选择了用tensorflow搭建一个简单的分类器来解决这个问题，毕竟，能让电脑累的就不能让自己累着了是吧。</p>
+<p>这里因为tf2新增了keras，开发和调试效率较高，所以选择逻辑简洁的tf2作为开发环境。</p>
+<p>安装tensorflow 2步骤大致如下（我当然是选择上GitHub白嫖，交叉编译简直难顶。仅pi3，4，直接上命令吧）：</p>
 
-首先要安装软件，有两个文件，一个是主程序，一个是插件。
-
-由于网络环境问题，我将软件使用了cdn进行加速：[下载点我](https://wws.lanzous.com/b01bh2tmd) 密码：5qb8
-
-安装一路默认就好]]></description><link>https://vaala.cat/posts/obs-virtual-cam指北</link><guid isPermaLink="true">https://vaala.cat/posts/obs-virtual-cam指北</guid><pubDate>Wed, 10 Jun 2020 18:14:33 GMT</pubDate></item><item><title><![CDATA[为Idrac配置邮箱警报]]></title><description><![CDATA[
-## 想法
-
-由于有了两个公网IP，遂捡了一台洋垃圾服务器以充分利用资源（其实就是想玩服务器）。由于两个IP一个是移动300M，一个是电信的100M，于是就把带宽较大的移动专线直接从网关路由插上了服务器，另一个则用于dell的idrac以管理服务器，以实现服务器在崩掉的情况下还能远程操作。(现已更新为双移动IP，都接入路由器，由路由器承担端口转发的工作。
-
-## 实现
-
-服务器本身的网络配置一帆风顺，照着Proxmox ve给的文档轻松就配置好了现已更新为esxi（不得不吐槽下移动的墙中墙，网络质量实在太差，在GitHub下个项目都能下出来一个缓存的老版本。倒是Dell的Idrac的邮箱配置是个巨坑。
-
-众所周知服务器都会有IPMI的配置，方便网管管理。但是我这也不是专业机房，没有人24小时监控（现在有了），于是打算部署一个邮箱报警。一番查找资料后发现idrac里面是有这个相关的设置，但是使用网易的邮箱一直都没有配置成功，换了腾讯，gmail也都不行。
-
-查找资料后在官方论坛中发现一个大坑，说是要将idrac中的网络设置里面，如图配置：
-
-![](/images/upload/2020-05/image-1.png)
-
-dns中的名称要以邮箱名称为准（这就要求要设置好dns服务器，而idrac默认是不配置的，然后在邮箱设置里面如图设置
-
-![](/images/upload/2020-05/image-2.png)
-
-然后是警报邮箱填上就行，填写好以后可以测试下是否设置成功
-
-![](/images/upload/2020-05/image-3.png)
-
-在官网文档找一个警报等级高的id填上去点发送就可以了]]></description><link>https://vaala.cat/posts/为idrac配置邮箱警报</link><guid isPermaLink="true">https://vaala.cat/posts/为idrac配置邮箱警报</guid><pubDate>Tue, 05 May 2020 20:11:23 GMT</pubDate></item><item><title><![CDATA[工科数学分析教材]]></title><description><![CDATA[
-[大学工科数学分析上](images/upload/2020-02/大学数学工科数学分析上第5版13858731.pdf)
-
-[大学工科数学分析下](images/upload/2020-02/14097849_大学数学工科数学分析第5版下_p232.pdf)]]></description><link>https://vaala.cat/posts/themathbook</link><guid isPermaLink="true">https://vaala.cat/posts/themathbook</guid><pubDate>Mon, 17 Feb 2020 10:26:26 GMT</pubDate></item><item><title><![CDATA[Robomaster校赛智能小车OpenCV视觉与神经网络环境搭建]]></title><description><![CDATA[
-本项目的所有代码均上传至GitHub，项目地址：[https://github.com/VaalaCat/AI\_raspberry\_car](https://github.com/VaalaCat/AI_raspberry_car)
-
-## 一、简介
-
-由于作死选择了摄像头来做这个项目，那显而易见的需要用到opencv来处理这个图像。（其实之前是用picamera库，不过现在opencv也不用编译了，还是选opencv吧）
-
-首先要介绍一下我的设备：
-
-![](/images/upload/2019-12/img_20191228_1547382525920447325202399-1024x768.jpg)
-
-*   树莓派4（俺的pi3看样子是中道崩殂了）
-*   picamera模块
-
-小小的吐槽一下pi4的发热量，简直比810火龙还强，没个强点的散热根本跑不满。
-
-## 二、环境搭建
-
-### 1、opencv环境
-
-既然说是要用到opencv，那就不得不提到opencv的安装。早在一年前我就妄图在我的pi3上安装python3的opencv，结果看到网上一大堆的python2直接pip安装的方法，又想到python3编译的龟速，还容易出错，心都凉了半截。不过今年再次翻资料的时候，找到了pip3安装opencv的方法，并且在我的pi3，pi4，pi zero w上，buster系统，无一失败。
-
-安装opencv步骤大致如下：
-
-1.  启动树莓派首先要换源，否则下载可能会失败数次且相当龟速，详见tuna源：[树莓派换源](https://mirror.tuna.tsinghua.edu.cn/help/raspbian/)
-2.  安装依赖项（由于我也不知道要用到些啥依赖，就瞎装了几个）`sudo apt-get install libhdf5-dev libhdf5-serial-dev libqtgui4 libqtwebkit4 libqt4-test python3-pyqt5 libatlas-base-dev libjasper-dev`
-3.  安装opencv（这里建议大家安装opencv3而不是默认的opencv4，每次我安装opencv4完成后都会遇到不可预料的错误）`sudo pip3 install --no-cache-dir opencv-contrib-python==3.4.3.18` （由于网络原因，下载可能较慢，这里我将whl包上传到了我的服务器以供快速下载安装：[opencv3](images/upload/2019-12/opencv_contrib_python-3.4.3.18-cp37-cp37m-linux_armv7l.whl)
-
-安装完成后，输入`python3` 然后`import cv2` 如果没有出错则说明安装成功。
-
-安装中的问题详见：[Opencv的安装](https://zhuanlan.zhihu.com/p/92184435)
-
-### 2、tf神经网络环境
-
-在安装完成后，当然要准备识别路线了，然而，路线识别简直是太困难了，所以对于岔路口分类，我选择了用tensorflow搭建一个简单的分类器来解决这个问题，毕竟，能让电脑累的就不能让自己累着了是吧。
-
-这里因为tf2新增了keras，开发和调试效率较高，所以选择逻辑简洁的tf2作为开发环境。
-
-安装tensorflow 2步骤大致如下（我当然是选择上GitHub白嫖，交叉编译简直难顶。仅pi3，4，直接上命令吧）：
-
-```
-sudo pip3 install --upgrade setuptools
+<pre><code>sudo pip3 install --upgrade setuptools
 sudo apt-get install -y libhdf5-dev libc-ares-dev libeigen3-dev
 sudo pip3 install keras_applications==1.0.8 --no-deps
 sudo pip3 install keras_preprocessing==1.1.0 --no-deps
@@ -1168,184 +1889,125 @@ pip3 install -U --user six wheel mock
 wget images/upload/2020-01/Tensorflow-bin-master/tensorflow-2.1.0-cp37-cp37m-linux_armv7l.whl
 sudo pip3 uninstall tensorflow
 sudo -H pip3 install tensorflow-2.1.0-cp37-cp37m-linux_armv7l.whl
-```
+</code></pre>
+<p>tf安装的其他问题详见：<a href="https://github.com/PINTO0309/Tensorflow-bin">Tensorflow-Bin预编译包</a>，<a href="https://www.tensorflow.org/install/source_rpi">TF官网帮助</a></p>
+<p>安装完成后进入python3使用import检查是否可以成功引用。</p>
+<p>以上步骤顺利执行完，就可以开始我们的开发了，<del>详见下一篇文章</del>咕咕咕咕咕咕咕。</p>
+]]></description><link>https://vaala.cat/posts/robomaster-opencv-and-tensorflow-car-environment-preparation</link><guid isPermaLink="true">https://vaala.cat/posts/robomaster-opencv-and-tensorflow-car-environment-preparation</guid><pubDate>Tue, 10 Dec 2019 22:55:35 GMT</pubDate></item><item><title><![CDATA[在树莓派3b上接收xbox one 蓝牙手柄数据]]></title><description><![CDATA[<p>——智能小车</p>
+<p>因为校赛要求要制作一个智能小车，得有遥控功能，综合权衡了各种遥控方式，如web端，app，发现持续性和操作维度很少，于是选择了我的xbox蓝牙手柄（在查资料的时候还发现树莓派将GPIO的串口分配给了蓝牙，也就是说不能公用GPIO串口和蓝牙，于是选择了使用usb线连接arduino）</p>
+<hr>
+<p>在Google使用中文关键词搜索了n次没有发现什么有用的数据，于是使用英文关键词检索到了大量可用数据（还是好好学英文吧），在GitHub上也找到了不少轮子可以直接用的</p>
+<p>需要注意的是树莓派直接连接蓝牙是不可行的，会提示无可用服务，在查到的资料看来，需要这样操作<a href="https://github.com/erviveksoni/xbox-raspberrypi-rover">https://github.com/erviveksoni/xbox-raspberrypi-rover</a>还有这个<a href="https://github.com/atar-axis/xpadneo/tree/master/docs">https://github.com/atar-axis/xpadneo/tree/master/docs</a></p>
+<p>按xpadneo的readme连接成功后手柄会震动提示</p>
+<p>连接成功后就在Python中可以使用pygame包里面的joysitck读取手柄数据了（有点奇怪的就是那个🎮的方向按键没有被读取到QAQ）</p>
+<p>还要吐槽一下手柄的数据，这个极限值有点不对劲啊，摇杆向左极限是-1，向右却只有0.998xxxxxx，更奇怪的是好几个轴的极限值都是一样的，不知道巨硬是怎么想的</p>
+<p>这里还贴几个开发中遇到的小坑，由于上位机树莓派接收遥控数据然后通过USB串口传给下位机Arduino，在开发过程中有三个问题</p>
+<p>一个是我在Arduino IDE发数据是完全没有问题的，用pyserial给Arduino发数据却出现了不识别的情况，多次试验后发现这是因为pyserial发送速度过快，发送的多个字符串被当成一个串处理，解决方法是加一个发送延时</p>
+<p>另一个就是发送数据的编码问题，Python中一般是utf8编码，而Arduino却是ASCII，所以发送的类型应该是ASCII的bytes数据</p>
+<p>还有一个是我在最后遥控的时候发现，每当遥控正常操作一段时间，都会出现卡顿，原因是serial的print速度太慢，大量数据卡在缓存导致Arduino运行慢，删掉serial.print即可</p>
+<p>有时间传一波整车图片叭（遥控手感真心不错</p>
+]]></description><link>https://vaala.cat/posts/在树莓派3b上接收xbox-one-蓝牙手柄数据</link><guid isPermaLink="true">https://vaala.cat/posts/在树莓派3b上接收xbox-one-蓝牙手柄数据</guid><pubDate>Thu, 07 Nov 2019 14:03:09 GMT</pubDate></item><item><title><![CDATA[Surface book 2 维修杂记]]></title><description><![CDATA[<p>用了一年的SB2喝了杯水，自己用吹风处理后并无卵用，当天晚上风扇关机后继续转动，托人拿给售后，售后表示人为损坏并不想维修。 找到第三方维修，花了3k大洋过更换了主板和键盘（键盘似乎并未更换，那个被我用吹风机热风吹变形的键帽还在那里。。。） 这里要吐槽一下第三方维修的专业程度，竟然用双面胶粘贴D面面板？？？ 并且留下了后遗症：键盘部分充电只能充到65%，而且出现了分离后键盘背光灯仍然亮起（以前并不会），既然第三方已经处理完进水，我就打算去微软官方售后碰碰运气。 在<a href="https://support.microsoft.com/zh-cn/devices/">微软售后页面</a>下维修订单，维修类型选择：硬件问题-底座连接问题 <img src="/images/upload/2019-07/Screenshot_20190709-074420.jpg" alt=""> <img src="/images/upload/2019-07/Screenshot_20190709-074524.jpg" alt=""> 下单后微软发来一封邮件，表示FedEx会来收件 <img src="/images/upload/2019-07/Screenshot_20190709-074710.jpg" alt=""> 然而我这种三线小城并无FedEx网点，不过过了两天，有个非常专业的FedEx客服打电话和我确认取件时间，我发现是另外一个啥没听过的快递公司，按单号查询得知，这个快递公司是将机器运送到FedEx网点，再由FedEx送至微软。 <img src="/images/upload/2019-07/Screenshot_20190709-075045.jpg" alt=""> 又过了n天收到了另一封邮件 <img src="/images/upload/2019-07/Screenshot_20190709-075140.jpg" alt=""> 一天后又收到另一封邮件 此时查看售后页面 <img src="/images/upload/2019-07/Screenshot_20190709-075258.jpg" alt=""> 发现已经发货，邮件似乎存在数据延迟，时间会晚上一天，可能是我用了VPN导致是美国时间。</p>
+<hr>
+<p>2019.07.18 收到笔记本6天，不得不说官方维修的效果不错，不过把我机器D面新增了几条划痕，还把我膜全部撕掉WTF，不过也无伤大雅，毕竟没给钱是把，再买张贴上就好了</p>
+]]></description><link>https://vaala.cat/posts/surface-book-2-维修杂记</link><guid isPermaLink="true">https://vaala.cat/posts/surface-book-2-维修杂记</guid><pubDate>Tue, 09 Jul 2019 07:41:33 GMT</pubDate></item><item><title><![CDATA[脑洞：每日知乎]]></title><description><![CDATA[<p>每天在教室无聊啊，只有逛逛知乎才有趣。 又不能明目张胆的开手机，遂打算做一个打印知乎文章的小工具 它需要以下功能：</p>
 
-tf安装的其他问题详见：[Tensorflow-Bin预编译包](https://github.com/PINTO0309/Tensorflow-bin)，[TF官网帮助](https://www.tensorflow.org/install/source_rpi)
+<ol>
+<li>接受发送的知乎链接</li>
+<li>保存链接对应标题，答案的文字和作者</li>
+<li>自动排版</li>
+<li>pdf或直接打印输出</li>
+</ol>
+<p>坑已挖，待填</p>
+]]></description><link>https://vaala.cat/posts/脑洞：每日知乎</link><guid isPermaLink="true">https://vaala.cat/posts/脑洞：每日知乎</guid><pubDate>Wed, 08 May 2019 01:19:27 GMT</pubDate></item><item><title><![CDATA[新脑洞：NFC+WiFi direct]]></title><description><![CDATA[<p>看了华为最近吹得很厉害的Huawei share3.0（就是手机一碰电脑就自动传文件那个），感觉是非常的方便，然而我并不想用华为的手机（其实是我没钱） 本来已经放弃这东西，但是看到说只要是华为笔记本，不管是新款还是旧款，拿到专卖店就能升级这玩意儿，我就寻思旧款的笔记本也没NFC这玩意儿啊，怎么实现一碰传的。 查询相关资料后发现这东西就是个NFC tag贴在电脑上。。。。 不得不说的确很机智 <img src="/images/upload/2019-04/s6dd94b82-26ea-4d53-a0c3-42ec3ff533833266178627231986992.jpg" alt=""> 分析后我认为这个东西是通过手机刷NFC连上电脑热点然后传输文件，但是看到视频演示里面传文件并没有影响到连接，又找了一大堆资料后发现还有个WiFi direct这玩意儿，可以实现设备端到端的连接，速度还比较快 这样的话软件的架构就已经成型了： （待更新）</p>
+]]></description><link>https://vaala.cat/posts/新脑洞：nfcwifi-direct</link><guid isPermaLink="true">https://vaala.cat/posts/新脑洞：nfcwifi-direct</guid><pubDate>Wed, 08 May 2019 01:15:34 GMT</pubDate></item><item><title><![CDATA[在windows10下转换mbr磁盘为gpt的大坑]]></title><description><![CDATA[<p>今天想试试1809的云剪贴板功能，结果发现台式电脑还处于1803，遂加入预览计划，下载升级包后发现竟然不支持mbr格式磁盘，找了一大堆资料后发现巨硬在自家1703后就自带了mbr2gpt.exe。</p>
 
-安装完成后进入python3使用import检查是否可以成功引用。
-
-以上步骤顺利执行完，就可以开始我们的开发了，~~详见下一篇文章~~咕咕咕咕咕咕咕。]]></description><link>https://vaala.cat/posts/robomaster-opencv-and-tensorflow-car-environment-preparation</link><guid isPermaLink="true">https://vaala.cat/posts/robomaster-opencv-and-tensorflow-car-environment-preparation</guid><pubDate>Tue, 10 Dec 2019 22:55:35 GMT</pubDate></item><item><title><![CDATA[在树莓派3b上接收xbox one 蓝牙手柄数据]]></title><description><![CDATA[
-——智能小车
-
-因为校赛要求要制作一个智能小车，得有遥控功能，综合权衡了各种遥控方式，如web端，app，发现持续性和操作维度很少，于是选择了我的xbox蓝牙手柄（在查资料的时候还发现树莓派将GPIO的串口分配给了蓝牙，也就是说不能公用GPIO串口和蓝牙，于是选择了使用usb线连接arduino）
-
-* * *
-
-在Google使用中文关键词搜索了n次没有发现什么有用的数据，于是使用英文关键词检索到了大量可用数据（还是好好学英文吧），在GitHub上也找到了不少轮子可以直接用的
-
-需要注意的是树莓派直接连接蓝牙是不可行的，会提示无可用服务，在查到的资料看来，需要这样操作[https://github.com/erviveksoni/xbox-raspberrypi-rover](https://github.com/erviveksoni/xbox-raspberrypi-rover)还有这个[https://github.com/atar-axis/xpadneo/tree/master/docs](https://github.com/atar-axis/xpadneo/tree/master/docs)
-
-按xpadneo的readme连接成功后手柄会震动提示
-
-连接成功后就在Python中可以使用pygame包里面的joysitck读取手柄数据了（有点奇怪的就是那个🎮的方向按键没有被读取到QAQ）
-
-还要吐槽一下手柄的数据，这个极限值有点不对劲啊，摇杆向左极限是-1，向右却只有0.998xxxxxx，更奇怪的是好几个轴的极限值都是一样的，不知道巨硬是怎么想的
-
-这里还贴几个开发中遇到的小坑，由于上位机树莓派接收遥控数据然后通过USB串口传给下位机Arduino，在开发过程中有三个问题
-
-一个是我在Arduino IDE发数据是完全没有问题的，用pyserial给Arduino发数据却出现了不识别的情况，多次试验后发现这是因为pyserial发送速度过快，发送的多个字符串被当成一个串处理，解决方法是加一个发送延时
-
-另一个就是发送数据的编码问题，Python中一般是utf8编码，而Arduino却是ASCII，所以发送的类型应该是ASCII的bytes数据
-
-还有一个是我在最后遥控的时候发现，每当遥控正常操作一段时间，都会出现卡顿，原因是serial的print速度太慢，大量数据卡在缓存导致Arduino运行慢，删掉serial.print即可
-
-有时间传一波整车图片叭（遥控手感真心不错]]></description><link>https://vaala.cat/posts/在树莓派3b上接收xbox-one-蓝牙手柄数据</link><guid isPermaLink="true">https://vaala.cat/posts/在树莓派3b上接收xbox-one-蓝牙手柄数据</guid><pubDate>Thu, 07 Nov 2019 14:03:09 GMT</pubDate></item><item><title><![CDATA[Surface book 2 维修杂记]]></title><description><![CDATA[
-用了一年的SB2喝了杯水，自己用吹风处理后并无卵用，当天晚上风扇关机后继续转动，托人拿给售后，售后表示人为损坏并不想维修。 找到第三方维修，花了3k大洋过更换了主板和键盘（键盘似乎并未更换，那个被我用吹风机热风吹变形的键帽还在那里。。。） 这里要吐槽一下第三方维修的专业程度，竟然用双面胶粘贴D面面板？？？ 并且留下了后遗症：键盘部分充电只能充到65%，而且出现了分离后键盘背光灯仍然亮起（以前并不会），既然第三方已经处理完进水，我就打算去微软官方售后碰碰运气。 在[微软售后页面](https://support.microsoft.com/zh-cn/devices/)下维修订单，维修类型选择：硬件问题-底座连接问题 ![](/images/upload/2019-07/Screenshot_20190709-074420.jpg) ![](/images/upload/2019-07/Screenshot_20190709-074524.jpg) 下单后微软发来一封邮件，表示FedEx会来收件 ![](/images/upload/2019-07/Screenshot_20190709-074710.jpg) 然而我这种三线小城并无FedEx网点，不过过了两天，有个非常专业的FedEx客服打电话和我确认取件时间，我发现是另外一个啥没听过的快递公司，按单号查询得知，这个快递公司是将机器运送到FedEx网点，再由FedEx送至微软。 ![](/images/upload/2019-07/Screenshot_20190709-075045.jpg) 又过了n天收到了另一封邮件 ![](/images/upload/2019-07/Screenshot_20190709-075140.jpg) 一天后又收到另一封邮件 此时查看售后页面 ![](/images/upload/2019-07/Screenshot_20190709-075258.jpg) 发现已经发货，邮件似乎存在数据延迟，时间会晚上一天，可能是我用了VPN导致是美国时间。
-
-* * *
-
-2019.07.18 收到笔记本6天，不得不说官方维修的效果不错，不过把我机器D面新增了几条划痕，还把我膜全部撕掉WTF，不过也无伤大雅，毕竟没给钱是把，再买张贴上就好了]]></description><link>https://vaala.cat/posts/surface-book-2-维修杂记</link><guid isPermaLink="true">https://vaala.cat/posts/surface-book-2-维修杂记</guid><pubDate>Tue, 09 Jul 2019 07:41:33 GMT</pubDate></item><item><title><![CDATA[脑洞：每日知乎]]></title><description><![CDATA[
-每天在教室无聊啊，只有逛逛知乎才有趣。 又不能明目张胆的开手机，遂打算做一个打印知乎文章的小工具 它需要以下功能：
-
-1.  接受发送的知乎链接
-2.  保存链接对应标题，答案的文字和作者
-3.  自动排版
-4.  pdf或直接打印输出
-
-坑已挖，待填]]></description><link>https://vaala.cat/posts/脑洞：每日知乎</link><guid isPermaLink="true">https://vaala.cat/posts/脑洞：每日知乎</guid><pubDate>Wed, 08 May 2019 01:19:27 GMT</pubDate></item><item><title><![CDATA[新脑洞：NFC+WiFi direct]]></title><description><![CDATA[
-看了华为最近吹得很厉害的Huawei share3.0（就是手机一碰电脑就自动传文件那个），感觉是非常的方便，然而我并不想用华为的手机（其实是我没钱） 本来已经放弃这东西，但是看到说只要是华为笔记本，不管是新款还是旧款，拿到专卖店就能升级这玩意儿，我就寻思旧款的笔记本也没NFC这玩意儿啊，怎么实现一碰传的。 查询相关资料后发现这东西就是个NFC tag贴在电脑上。。。。 不得不说的确很机智 ![](/images/upload/2019-04/s6dd94b82-26ea-4d53-a0c3-42ec3ff533833266178627231986992.jpg) 分析后我认为这个东西是通过手机刷NFC连上电脑热点然后传输文件，但是看到视频演示里面传文件并没有影响到连接，又找了一大堆资料后发现还有个WiFi direct这玩意儿，可以实现设备端到端的连接，速度还比较快 这样的话软件的架构就已经成型了： （待更新）]]></description><link>https://vaala.cat/posts/新脑洞：nfcwifi-direct</link><guid isPermaLink="true">https://vaala.cat/posts/新脑洞：nfcwifi-direct</guid><pubDate>Wed, 08 May 2019 01:15:34 GMT</pubDate></item><item><title><![CDATA[在windows10下转换mbr磁盘为gpt的大坑]]></title><description><![CDATA[
-今天想试试1809的云剪贴板功能，结果发现台式电脑还处于1803，遂加入预览计划，下载升级包后发现竟然不支持mbr格式磁盘，找了一大堆资料后发现巨硬在自家1703后就自带了mbr2gpt.exe。
-```
-mbr2gpt /validate /allowfullos
+<pre><code>mbr2gpt /validate /allowfullos
 mbr2gpt /convert /disk:0 /allowfullos
-```
-验证并转换磁盘，第一次竟然失败了，我再尝试一次后发现转换成功，就重启电脑，结果就出现了下面这种情况
+</code></pre>
+<p>验证并转换磁盘，第一次竟然失败了，我再尝试一次后发现转换成功，就重启电脑，结果就出现了下面这种情况</p>
+<p><img src="/images/upload/2019-03/WIN_20190324_14_40_05_Pro-1024x576.jpg" alt=""></p>
+<blockquote>
+<p><br>0xC000000E或STATUS_NO_SUCH_DEVICE表示硬件故障或驱动器配置不正确。 检查电缆并使用驱动器制造商提供的诊断实用程序检查驱动器。 如果您使用的是较旧的PATA（IDE）驱动器，则此状态代码可能表示主/从属驱动器配置不正确。<br>导致这些错误的原因可能是winload.exe文件无法访问或损坏，或者无法找到操作系统的引导位置。</p>
+<p>尝试使用下列方法修复你的设备<br>--重建BCD。<br>--使用自动修复工具。<br>--检查物理设备连接。<br>--重置BIOS / UEFI配置。<br>--将您的磁盘标记为在线。</p>
+<p>微软官方回复  </p>
+</blockquote>
+<p>初步判断为引导文件挂掉，于是加载pe修复引导，用微pe自带的引导修复工具修复</p>
+<p><img src="/images/upload/2019-03/WIN_20190324_14_53_26_Pro-1024x576.jpg" alt=""></p>
+<p>发现并没有什么卵用。。。遂再次尝试，重启后发现还是没有什么卵用</p>
+<p>遂使用bcd修复</p>
 
-![](/images/upload/2019-03/WIN_20190324_14_40_05_Pro-1024x576.jpg)
-
->   
-> 0xC000000E或STATUS\_NO\_SUCH\_DEVICE表示硬件故障或驱动器配置不正确。 检查电缆并使用驱动器制造商提供的诊断实用程序检查驱动器。 如果您使用的是较旧的PATA（IDE）驱动器，则此状态代码可能表示主/从属驱动器配置不正确。  
-> 导致这些错误的原因可能是winload.exe文件无法访问或损坏，或者无法找到操作系统的引导位置。
-> 
-> 尝试使用下列方法修复你的设备  
-> \--重建BCD。  
-> \--使用自动修复工具。  
-> \--检查物理设备连接。  
-> \--重置BIOS / UEFI配置。  
-> \--将您的磁盘标记为在线。
-> 
-> 微软官方回复  
-
-初步判断为引导文件挂掉，于是加载pe修复引导，用微pe自带的引导修复工具修复
-
-![](/images/upload/2019-03/WIN_20190324_14_53_26_Pro-1024x576.jpg)
-
-发现并没有什么卵用。。。遂再次尝试，重启后发现还是没有什么卵用
-
-遂使用bcd修复
-```
-cd c:/windows/system32 
+<pre><code>cd c:/windows/system32 
 bcdedit /set {default} osdevice boot 
 bcdedit /set {default} device boot 
-bcdedit /set {default} detecthal 1 
-```
-更新：4月15日，重装系统，真香]]></description><link>https://vaala.cat/posts/在windows10下转换mbr磁盘为gpt的大坑</link><guid isPermaLink="true">https://vaala.cat/posts/在windows10下转换mbr磁盘为gpt的大坑</guid><pubDate>Mon, 15 Apr 2019 23:40:53 GMT</pubDate></item><item><title><![CDATA[在wp侧边栏中添加svg按钮并添加动画]]></title><description><![CDATA[
-看了[moycat](https://moy.cat)主页的个人介绍栏那几个按钮动画漂亮得不行（效果图如右下），打算在Wordpress中做一个长得差不多的按钮
+bcdedit /set {default} detecthal 1
+</code></pre>
+<p>更新：4月15日，重装系统，真香</p>
+]]></description><link>https://vaala.cat/posts/在windows10下转换mbr磁盘为gpt的大坑</link><guid isPermaLink="true">https://vaala.cat/posts/在windows10下转换mbr磁盘为gpt的大坑</guid><pubDate>Mon, 15 Apr 2019 23:40:53 GMT</pubDate></item><item><title><![CDATA[在wp侧边栏中添加svg按钮并添加动画]]></title><description><![CDATA[<p>看了<a href="https://moy.cat">moycat</a>主页的个人介绍栏那几个按钮动画漂亮得不行（效果图如右下），打算在Wordpress中做一个长得差不多的按钮</p>
+<p>参考<a href="https://codepen.io/luiscarvalho/pen/hJFrxl">https://codepen.io/luiscarvalho/pen/hJFrxl</a>里面的内容，开始操作</p>
+<p><img src="/images/upload/2018-08/image-1.png" alt=""></p>
+<p>moy个人介绍  </p>
+<p>按钮的样式就用svg来画了，我们显然不可能用path一个点一个点的描，所幸Adobe illstrator 可以直接导出svg资源</p>
+<p>在AI中画好按钮图，右键导出到资源选择svg格式（建议小一点，矢量图放大并不会出现边缘锯齿），用编辑器打开保存的文件，删掉不需要的东西</p>
+<p>复制文件内容，进入Wordpress的自定义，在小工具里面添加一个自定义HTML，讲复制的svg文件内容粘贴到内容里面，给svg添加一个链接</p>
 
-参考[https://codepen.io/luiscarvalho/pen/hJFrxl](https://codepen.io/luiscarvalho/pen/hJFrxl)里面的内容，开始操作
+<pre><code>&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 30 30&quot; width=&quot;30px&quot; height=&quot;30px&quot; &gt;
+&lt;defs&gt;&lt;style&gt;.cls-1{fill:#1088ea;}&lt;/style&gt;&lt;/defs&gt;
+&lt;title&gt;zhihu 30px&lt;/title&gt;
+&lt;g id=&quot;zhihu&quot; data-name=&quot;zhihu&quot;&gt;
+&lt;path class=&quot;cls-1&quot; d=&quot;M9,20.88a13.25,13.25,0,0,0,1.25-1c.15-.12.22-.11.35,0,1.24,1.35,2.41,2.75,3.58,4.16a2.27,2.27,0,0,1,.44,1.23,8.16,8.16,0,0,1-.28,3L8.83,21.52c-.17.55-.32,1.07-.49,1.58A17.56,17.56,0,0,1,5.84,28,4.91,4.91,0,0,1,2.61,29.9,5.63,5.63,0,0,1,0,29.78c0-.12.11-.15.18-.2a19.68,19.68,0,0,0,4.76-5.51,17.33,17.33,0,0,0,2.18-6.65,4.1,4.1,0,0,1,.06-.49c0-.2,0-.23-.21-.23H.77c-.3,0-.3,0-.23-.3a4.83,4.83,0,0,1,.58-1.52,1.27,1.27,0,0,1,1.17-.65c1.63,0,3.26,0,4.9,0,.18,0,.24,0,.25-.24.09-2.4.13-4.81.16-7.22,0-.18-.06-.22-.22-.22H4.84c-.15,0-.21.06-.27.2a7.26,7.26,0,0,1-.64,1.64,4.19,4.19,0,0,1-3.35,2c-.13,0-.25,0-.14-.18a58,58,0,0,0,3-7.68,3.47,3.47,0,0,1,3-2.48s.09,0,.11,0h.25a.6.6,0,0,1-.08.35C6.24,1.55,5.86,2.76,5.52,4c-.06.23,0,.28.2.27h8.64a.77.77,0,0,1,.89.64,4.48,4.48,0,0,1,.17,1.55c0,.12-.08.13-.17.13H10.41c-.2,0-.26,0-.26.25q0,2.82-.12,5.64c0,.5,0,1-.09,1.5,0,.25.05.29.27.29,1.64,0,3.28,0,4.92,0a.6.6,0,0,1,.62.4,6.13,6.13,0,0,1,.33,1.94c0,.12-.06.13-.15.13H10c-.16,0-.25,0-.26.22a17.87,17.87,0,0,1-.68,3.7.36.36,0,0,0,0,.25s0,0,0,0,0,0,0,0Z&quot;/&gt;
+&lt;path class=&quot;cls-1&quot; d=&quot;M30,15.21c0,3.68,0,7.37,0,11.06,0,.23,0,.31-.29.3-1.52,0-3,0-4.56,0a.74.74,0,0,0-.43.12q-1.92,1.24-3.86,2.47c-.24.16-.24.16-.33-.13-.21-.75-.43-1.5-.64-2.25-.05-.16-.11-.22-.28-.22h-2c-.19,0-.22-.06-.22-.23V4.11c0-.19,0-.25.23-.25h12.1c.24,0,.25.1.25.29C30,7.83,30,11.52,30,15.21Zm-10,0v8.68c0,.18,0,.25.22.24s.49,0,.74,0a.27.27,0,0,1,.33.25c.11.45.26.88.37,1.33.06.21.12.24.3.12l2.45-1.58a.7.7,0,0,1,.4-.12h2.39c.23,0,.27-.07.27-.29V6.6c0-.23-.06-.28-.28-.28H20.25c-.23,0-.28.06-.27.29Z&quot;/&gt;
+&lt;path class=&quot;cls-1&quot; d=&quot;M9,20.88l0,0s0,0,0,0,0,0,0,0Z&quot;/&gt;
+&lt;/g&gt;
+&lt;/svg&gt;
+</code></pre>
+<p><img src="/images/upload/2018-08/image-4.png" alt=""></p>
+<p>粘贴到内容</p>
+<p>粘贴后不对啊。。。怎么有错误。。。我怎么也不知道。。</p>
+<p>搜索后发现。。。<a href="https://github.com/yaniswang/HTMLHint/wiki/Attr-lowercase">https://github.com/yaniswang/HTMLHint/wiki/Attr-lowercasezhzhi</a> 只需要把viewBox里面的B改成b就行了</p>
+<p>在最后的代码上添加这段代码（hover是指定选择鼠标指针浮动在其上的元素，并设置其样式）这里是鼠标浮动在知乎图标上并且将颜色改为知乎蓝，还要将以前的fill位置改到g标签内，如果不修改位置，就无法使用动画（说多了都是泪），fill=#808080深灰色</p>
 
-![](/images/upload/2018-08/image-1.png)
-
-moy个人介绍  
-
-按钮的样式就用svg来画了，我们显然不可能用path一个点一个点的描，所幸Adobe illstrator 可以直接导出svg资源
-
-在AI中画好按钮图，右键导出到资源选择svg格式（建议小一点，矢量图放大并不会出现边缘锯齿），用编辑器打开保存的文件，删掉不需要的东西
-
-复制文件内容，进入Wordpress的自定义，在小工具里面添加一个自定义HTML，讲复制的svg文件内容粘贴到内容里面，给svg添加一个链接
-
-```
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30px" height="30px" >
-<defs><style>.cls-1{fill:#1088ea;}</style></defs>
-<title>zhihu 30px</title>
-<g id="zhihu" data-name="zhihu">
-<path class="cls-1" d="M9,20.88a13.25,13.25,0,0,0,1.25-1c.15-.12.22-.11.35,0,1.24,1.35,2.41,2.75,3.58,4.16a2.27,2.27,0,0,1,.44,1.23,8.16,8.16,0,0,1-.28,3L8.83,21.52c-.17.55-.32,1.07-.49,1.58A17.56,17.56,0,0,1,5.84,28,4.91,4.91,0,0,1,2.61,29.9,5.63,5.63,0,0,1,0,29.78c0-.12.11-.15.18-.2a19.68,19.68,0,0,0,4.76-5.51,17.33,17.33,0,0,0,2.18-6.65,4.1,4.1,0,0,1,.06-.49c0-.2,0-.23-.21-.23H.77c-.3,0-.3,0-.23-.3a4.83,4.83,0,0,1,.58-1.52,1.27,1.27,0,0,1,1.17-.65c1.63,0,3.26,0,4.9,0,.18,0,.24,0,.25-.24.09-2.4.13-4.81.16-7.22,0-.18-.06-.22-.22-.22H4.84c-.15,0-.21.06-.27.2a7.26,7.26,0,0,1-.64,1.64,4.19,4.19,0,0,1-3.35,2c-.13,0-.25,0-.14-.18a58,58,0,0,0,3-7.68,3.47,3.47,0,0,1,3-2.48s.09,0,.11,0h.25a.6.6,0,0,1-.08.35C6.24,1.55,5.86,2.76,5.52,4c-.06.23,0,.28.2.27h8.64a.77.77,0,0,1,.89.64,4.48,4.48,0,0,1,.17,1.55c0,.12-.08.13-.17.13H10.41c-.2,0-.26,0-.26.25q0,2.82-.12,5.64c0,.5,0,1-.09,1.5,0,.25.05.29.27.29,1.64,0,3.28,0,4.92,0a.6.6,0,0,1,.62.4,6.13,6.13,0,0,1,.33,1.94c0,.12-.06.13-.15.13H10c-.16,0-.25,0-.26.22a17.87,17.87,0,0,1-.68,3.7.36.36,0,0,0,0,.25s0,0,0,0,0,0,0,0Z"/>
-<path class="cls-1" d="M30,15.21c0,3.68,0,7.37,0,11.06,0,.23,0,.31-.29.3-1.52,0-3,0-4.56,0a.74.74,0,0,0-.43.12q-1.92,1.24-3.86,2.47c-.24.16-.24.16-.33-.13-.21-.75-.43-1.5-.64-2.25-.05-.16-.11-.22-.28-.22h-2c-.19,0-.22-.06-.22-.23V4.11c0-.19,0-.25.23-.25h12.1c.24,0,.25.1.25.29C30,7.83,30,11.52,30,15.21Zm-10,0v8.68c0,.18,0,.25.22.24s.49,0,.74,0a.27.27,0,0,1,.33.25c.11.45.26.88.37,1.33.06.21.12.24.3.12l2.45-1.58a.7.7,0,0,1,.4-.12h2.39c.23,0,.27-.07.27-.29V6.6c0-.23-.06-.28-.28-.28H20.25c-.23,0-.28.06-.27.29Z"/>
-<path class="cls-1" d="M9,20.88l0,0s0,0,0,0,0,0,0,0Z"/>
-</g>
-</svg>
-```
-
-![](/images/upload/2018-08/image-4.png)
-
-粘贴到内容
-
-粘贴后不对啊。。。怎么有错误。。。我怎么也不知道。。
-
-搜索后发现。。。[https://github.com/yaniswang/HTMLHint/wiki/Attr-lowercasezhzhi](https://github.com/yaniswang/HTMLHint/wiki/Attr-lowercase) 只需要把viewBox里面的B改成b就行了
-
-在最后的代码上添加这段代码（hover是指定选择鼠标指针浮动在其上的元素，并设置其样式）这里是鼠标浮动在知乎图标上并且将颜色改为知乎蓝，还要将以前的fill位置改到g标签内，如果不修改位置，就无法使用动画（说多了都是泪），fill=#808080深灰色
-
-```
-<a href="https://www.zhihu.com/people/huidcs176">
-<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 30 30" width="30px" height="30px" attr-lowercase = true>
-<style>
+<pre><code>&lt;a href=&quot;https://www.zhihu.com/people/huidcs176&quot;&gt;
+&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewbox=&quot;0 0 30 30&quot; width=&quot;30px&quot; height=&quot;30px&quot; attr-lowercase = true&gt;
+&lt;style&gt;
 a svg:hover #zhihu
-	{
-		fill:#1088ea;
-	}
+    {
+        fill:#1088ea;
+    }
 a svg #zhihu { 
   transition: 200ms;
   transition-timing-function: ease-in-out;
   -webkit-transition: 200ms;
   -webkit-transition-timing-function: ease-in-out;
 }
-</style>
-<title>zhihu</title>
-<g id="zhihu" data-name="zhihu" fill=#808080>
-<path class="cls-1" d="M9,20.88a13.25,13.25,0,0,0,1.25-1c.15-.12.22-.11.35,0,1.24,1.35,2.41,2.75,3.58,4.16a2.27,2.27,0,0,1,.44,1.23,8.16,8.16,0,0,1-.28,3L8.83,21.52c-.17.55-.32,1.07-.49,1.58A17.56,17.56,0,0,1,5.84,28,4.91,4.91,0,0,1,2.61,29.9,5.63,5.63,0,0,1,0,29.78c0-.12.11-.15.18-.2a19.68,19.68,0,0,0,4.76-5.51,17.33,17.33,0,0,0,2.18-6.65,4.1,4.1,0,0,1,.06-.49c0-.2,0-.23-.21-.23H.77c-.3,0-.3,0-.23-.3a4.83,4.83,0,0,1,.58-1.52,1.27,1.27,0,0,1,1.17-.65c1.63,0,3.26,0,4.9,0,.18,0,.24,0,.25-.24.09-2.4.13-4.81.16-7.22,0-.18-.06-.22-.22-.22H4.84c-.15,0-.21.06-.27.2a7.26,7.26,0,0,1-.64,1.64,4.19,4.19,0,0,1-3.35,2c-.13,0-.25,0-.14-.18a58,58,0,0,0,3-7.68,3.47,3.47,0,0,1,3-2.48s.09,0,.11,0h.25a.6.6,0,0,1-.08.35C6.24,1.55,5.86,2.76,5.52,4c-.06.23,0,.28.2.27h8.64a.77.77,0,0,1,.89.64,4.48,4.48,0,0,1,.17,1.55c0,.12-.08.13-.17.13H10.41c-.2,0-.26,0-.26.25q0,2.82-.12,5.64c0,.5,0,1-.09,1.5,0,.25.05.29.27.29,1.64,0,3.28,0,4.92,0a.6.6,0,0,1,.62.4,6.13,6.13,0,0,1,.33,1.94c0,.12-.06.13-.15.13H10c-.16,0-.25,0-.26.22a17.87,17.87,0,0,1-.68,3.7.36.36,0,0,0,0,.25s0,0,0,0,0,0,0,0Z"/>
-<path class="cls-1" d="M30,15.21c0,3.68,0,7.37,0,11.06,0,.23,0,.31-.29.3-1.52,0-3,0-4.56,0a.74.74,0,0,0-.43.12q-1.92,1.24-3.86,2.47c-.24.16-.24.16-.33-.13-.21-.75-.43-1.5-.64-2.25-.05-.16-.11-.22-.28-.22h-2c-.19,0-.22-.06-.22-.23V4.11c0-.19,0-.25.23-.25h12.1c.24,0,.25.1.25.29C30,7.83,30,11.52,30,15.21Zm-10,0v8.68c0,.18,0,.25.22.24s.49,0,.74,0a.27.27,0,0,1,.33.25c.11.45.26.88.37,1.33.06.21.12.24.3.12l2.45-1.58a.7.7,0,0,1,.4-.12h2.39c.23,0,.27-.07.27-.29V6.6c0-.23-.06-.28-.28-.28H20.25c-.23,0-.28.06-.27.29Z"/>
-<path class="cls-1" d="M9,20.88l0,0s0,0,0,0,0,0,0,0Z"/>
-</g>
-</svg>
-</a>
-```
+&lt;/style&gt;
+&lt;title&gt;zhihu&lt;/title&gt;
+&lt;g id=&quot;zhihu&quot; data-name=&quot;zhihu&quot; fill=#808080&gt;
+&lt;path class=&quot;cls-1&quot; d=&quot;M9,20.88a13.25,13.25,0,0,0,1.25-1c.15-.12.22-.11.35,0,1.24,1.35,2.41,2.75,3.58,4.16a2.27,2.27,0,0,1,.44,1.23,8.16,8.16,0,0,1-.28,3L8.83,21.52c-.17.55-.32,1.07-.49,1.58A17.56,17.56,0,0,1,5.84,28,4.91,4.91,0,0,1,2.61,29.9,5.63,5.63,0,0,1,0,29.78c0-.12.11-.15.18-.2a19.68,19.68,0,0,0,4.76-5.51,17.33,17.33,0,0,0,2.18-6.65,4.1,4.1,0,0,1,.06-.49c0-.2,0-.23-.21-.23H.77c-.3,0-.3,0-.23-.3a4.83,4.83,0,0,1,.58-1.52,1.27,1.27,0,0,1,1.17-.65c1.63,0,3.26,0,4.9,0,.18,0,.24,0,.25-.24.09-2.4.13-4.81.16-7.22,0-.18-.06-.22-.22-.22H4.84c-.15,0-.21.06-.27.2a7.26,7.26,0,0,1-.64,1.64,4.19,4.19,0,0,1-3.35,2c-.13,0-.25,0-.14-.18a58,58,0,0,0,3-7.68,3.47,3.47,0,0,1,3-2.48s.09,0,.11,0h.25a.6.6,0,0,1-.08.35C6.24,1.55,5.86,2.76,5.52,4c-.06.23,0,.28.2.27h8.64a.77.77,0,0,1,.89.64,4.48,4.48,0,0,1,.17,1.55c0,.12-.08.13-.17.13H10.41c-.2,0-.26,0-.26.25q0,2.82-.12,5.64c0,.5,0,1-.09,1.5,0,.25.05.29.27.29,1.64,0,3.28,0,4.92,0a.6.6,0,0,1,.62.4,6.13,6.13,0,0,1,.33,1.94c0,.12-.06.13-.15.13H10c-.16,0-.25,0-.26.22a17.87,17.87,0,0,1-.68,3.7.36.36,0,0,0,0,.25s0,0,0,0,0,0,0,0Z&quot;/&gt;
+&lt;path class=&quot;cls-1&quot; d=&quot;M30,15.21c0,3.68,0,7.37,0,11.06,0,.23,0,.31-.29.3-1.52,0-3,0-4.56,0a.74.74,0,0,0-.43.12q-1.92,1.24-3.86,2.47c-.24.16-.24.16-.33-.13-.21-.75-.43-1.5-.64-2.25-.05-.16-.11-.22-.28-.22h-2c-.19,0-.22-.06-.22-.23V4.11c0-.19,0-.25.23-.25h12.1c.24,0,.25.1.25.29C30,7.83,30,11.52,30,15.21Zm-10,0v8.68c0,.18,0,.25.22.24s.49,0,.74,0a.27.27,0,0,1,.33.25c.11.45.26.88.37,1.33.06.21.12.24.3.12l2.45-1.58a.7.7,0,0,1,.4-.12h2.39c.23,0,.27-.07.27-.29V6.6c0-.23-.06-.28-.28-.28H20.25c-.23,0-.28.06-.27.29Z&quot;/&gt;
+&lt;path class=&quot;cls-1&quot; d=&quot;M9,20.88l0,0s0,0,0,0,0,0,0,0Z&quot;/&gt;
+&lt;/g&gt;
+&lt;/svg&gt;
+&lt;/a&gt;
+</code></pre>
+<p>至此按钮制作完成，但是我们发现这个按钮下面有一条巨丑的下划线，，moy的blog里面是没有这条线的，这个当然是a标签自带的，可以在style标签中添加以下代码消除下划线</p>
 
-至此按钮制作完成，但是我们发现这个按钮下面有一条巨丑的下划线，，moy的blog里面是没有这条线的，这个当然是a标签自带的，可以在style标签中添加以下代码消除下划线
-
-```
-a{text-decoration:none}
-```
-
-你说啥，没用？这个你就别问我了。。因为我也不知道为啥。。。
-
-你也许需要编辑主题的css样式表（style.css），我在更换主题后下划线消失，猜测是因为style.css中的设置覆盖了当前设置]]></description><link>https://vaala.cat/posts/在wp侧边栏中添加svg按钮并添加动画</link><guid isPermaLink="true">https://vaala.cat/posts/在wp侧边栏中添加svg按钮并添加动画</guid><pubDate>Mon, 13 Aug 2018 13:39:37 GMT</pubDate></item><item><title><![CDATA[[转载]此时我躺在成都某宾馆的床上]]></title><description><![CDATA[
-## By [moycat](https://moy.cat)
-
-Day -8 //由此可见moy黑历史不止一条
-
-此时我躺在成都某宾馆的床上，等待着随时的入睡。
-
-所谓竞赛学习，实已名存实亡，与在南充的自习并无两样。虽然，在这边，感觉似乎要好些。
-
-这次在成都，没有半年多前的那般匆忙，倒竟比在南充还要舒爽些。只是成都没有南充的夜雨，很是干燥。
-
-只是敌不过，还剩八天的这个事实。
-
-不想谈自己与OI，然而忍不住。
-
-上个学期的半年来，似乎我没有放超过一丝一毫的精力在OI中。2月培训的囫囵吞枣后，似乎彻底把我噎住了，噎了半年。我怀疑半年来我做过几道OI的题，看过几页OI的书。这并不光彩，然而为何我的雄心竟会萎缩至此？
-
-或许是我早就隐隐觉得，OI和文化课、其他竞赛的相似点，还是有那么多。
-
-我之所以讨厌大多数高考要考的文化课，无非是做它们的题很是烦人：如果你知道这个解题套路，那么套进去，得分；你要是不知道，任你想破头皮，做不出来。
-
-这世界上的问题，的确很多需要经验去解决，经验——或记忆，是人类赖以存活的根基。可是在文化课的题目中，这一点被无限放大了，你就是要背住这个套路，这个题型，这个方法，否则死路一条。也许并不是如此吧，但我所在的环境处处如此，以至于我总觉得其中另有目的。
-
-但OI不也如此吗？背下各种各样的算法，了解各种各样的题型。在STL还没被解禁的时候，一个排序算法都需要背得想吐。那时候之机械更甚，真不明白明明有STL为什么不允许用。但OI毕竟和其他科目不同，否则我早就放弃了，就像我入学短短几个月后放弃物理竞赛一样。虽然我不知道是不是我对信息技术的喜爱遮住了什么缺点。不过也无所谓了。
-
-在被噎住半年后，我才重新拿起OI，备战NOIP——也就是这学期开始吧。从找时间练，再晚上放学留在机房练，又停课练，现在跑到成都练。能沉浸在自己喜欢的事情里，感觉真是好啊，只是这时间太短了。但我没有为过去的半年后悔，因为我知道后悔无用，而且就算再来一次，也未必会被我珍惜。
-
-唯一令我欣慰的是，NOIP就算失败也不会是我OI的终点。还有省选，虽然希望不大。但将来到了大学，我可不想去ACM了……那时既然有了自由，我就会做自己梦想的事。
-
-离NOIP2015还有短短几天。未来的事，又有谁能预见。]]></description><link>https://vaala.cat/posts/转载此时我躺在成都某宾馆的床上</link><guid isPermaLink="true">https://vaala.cat/posts/转载此时我躺在成都某宾馆的床上</guid><pubDate>Sun, 12 Aug 2018 18:50:15 GMT</pubDate></item></channel></rss>
+<pre><code>a{text-decoration:none}
+</code></pre>
+<p>你说啥，没用？这个你就别问我了。。因为我也不知道为啥。。。</p>
+<p>你也许需要编辑主题的css样式表（style.css），我在更换主题后下划线消失，猜测是因为style.css中的设置覆盖了当前设置</p>
+]]></description><link>https://vaala.cat/posts/在wp侧边栏中添加svg按钮并添加动画</link><guid isPermaLink="true">https://vaala.cat/posts/在wp侧边栏中添加svg按钮并添加动画</guid><pubDate>Mon, 13 Aug 2018 13:39:37 GMT</pubDate></item><item><title><![CDATA[[转载]此时我躺在成都某宾馆的床上]]></title><description><![CDATA[<h2 id="by-moycat-https-moy-cat-">By <a href="https://moy.cat">moycat</a></h2>
+<p>Day -8 //由此可见moy黑历史不止一条</p>
+<p>此时我躺在成都某宾馆的床上，等待着随时的入睡。</p>
+<p>所谓竞赛学习，实已名存实亡，与在南充的自习并无两样。虽然，在这边，感觉似乎要好些。</p>
+<p>这次在成都，没有半年多前的那般匆忙，倒竟比在南充还要舒爽些。只是成都没有南充的夜雨，很是干燥。</p>
+<p>只是敌不过，还剩八天的这个事实。</p>
+<p>不想谈自己与OI，然而忍不住。</p>
+<p>上个学期的半年来，似乎我没有放超过一丝一毫的精力在OI中。2月培训的囫囵吞枣后，似乎彻底把我噎住了，噎了半年。我怀疑半年来我做过几道OI的题，看过几页OI的书。这并不光彩，然而为何我的雄心竟会萎缩至此？</p>
+<p>或许是我早就隐隐觉得，OI和文化课、其他竞赛的相似点，还是有那么多。</p>
+<p>我之所以讨厌大多数高考要考的文化课，无非是做它们的题很是烦人：如果你知道这个解题套路，那么套进去，得分；你要是不知道，任你想破头皮，做不出来。</p>
+<p>这世界上的问题，的确很多需要经验去解决，经验——或记忆，是人类赖以存活的根基。可是在文化课的题目中，这一点被无限放大了，你就是要背住这个套路，这个题型，这个方法，否则死路一条。也许并不是如此吧，但我所在的环境处处如此，以至于我总觉得其中另有目的。</p>
+<p>但OI不也如此吗？背下各种各样的算法，了解各种各样的题型。在STL还没被解禁的时候，一个排序算法都需要背得想吐。那时候之机械更甚，真不明白明明有STL为什么不允许用。但OI毕竟和其他科目不同，否则我早就放弃了，就像我入学短短几个月后放弃物理竞赛一样。虽然我不知道是不是我对信息技术的喜爱遮住了什么缺点。不过也无所谓了。</p>
+<p>在被噎住半年后，我才重新拿起OI，备战NOIP——也就是这学期开始吧。从找时间练，再晚上放学留在机房练，又停课练，现在跑到成都练。能沉浸在自己喜欢的事情里，感觉真是好啊，只是这时间太短了。但我没有为过去的半年后悔，因为我知道后悔无用，而且就算再来一次，也未必会被我珍惜。</p>
+<p>唯一令我欣慰的是，NOIP就算失败也不会是我OI的终点。还有省选，虽然希望不大。但将来到了大学，我可不想去ACM了……那时既然有了自由，我就会做自己梦想的事。</p>
+<p>离NOIP2015还有短短几天。未来的事，又有谁能预见。</p>
+]]></description><link>https://vaala.cat/posts/转载此时我躺在成都某宾馆的床上</link><guid isPermaLink="true">https://vaala.cat/posts/转载此时我躺在成都某宾馆的床上</guid><pubDate>Sun, 12 Aug 2018 18:50:15 GMT</pubDate></item></channel></rss>
